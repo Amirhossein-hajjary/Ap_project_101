@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 class AppTheme {
   static const Color blackColor = Color(0xFF1A1A1A);
-  static const Color blackLight = Color(0xFF2D2D2D);
+  static const Color blackLight = Color(0xFF0E0010);
   static const Color blackDark = Color(0xFF0D0D0D);
-  static const Color goldColor = Color(0xFFFFD700);
-  static const Color goldLight = Color(0xFFFFF176);
+  static const Color goldColor = Color(0xFFE6D0D6);
+  static const Color goldLight = Color(0xFFA518CC);
   static const Color goldDark = Color(0xFFF9A825);
   static const Color backgroundColor = Color(0xFF121212);
   static const Color white = Color(0xFFFFFFFF);
