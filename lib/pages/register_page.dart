@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../themes/app_theme.dart';
 import '../widgets/custom_text_field.dart';
 import 'login_page.dart';
+import 'albums_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -33,22 +34,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
   void _register() {
     if (_formKey.currentState!.validate()) {
-      if (!_acceptTerms) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please accept the terms and conditions'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Registration successful! 🎉'),
-          backgroundColor: AppTheme.goldColor,
-          duration: const Duration(seconds: 3),
-        ),
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AlbumsPage()),
       );
     }
   }

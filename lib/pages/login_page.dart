@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../themes/app_theme.dart';
 import '../widgets/custom_text_field.dart';
-import 'register_page.dart'; // وارد کردن صفحه ثبت‌نام برای جابه‌جایی
+import 'register_page.dart';
+import 'albums_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -27,13 +28,9 @@ class _LoginPageState extends State<LoginPage> {
 
   void _login() {
     if (_formKey.currentState!.validate()) {
-      // در اینجا منطق اتصال به API یا سرور قرار می‌گیرد
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Login Successful! Welcome back 🎉'),
-          backgroundColor: AppTheme.goldColor,
-          duration: const Duration(seconds: 3),
-        ),
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AlbumsPage()),
       );
     }
   }
@@ -74,7 +71,6 @@ class _LoginPageState extends State<LoginPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // آیکون بالای صفحه (تغییر یافته به قفل)
                         Container(
                           width: 80,
                           height: 80,
@@ -107,7 +103,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: 30),
 
-                        // فیلد ایمیل
+
                         CustomTextField(
                           controller: _emailController,
                           label: 'Email',
@@ -123,7 +119,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: 16),
 
-                        // فیلد رمز عبور
+
                         CustomTextField(
                           controller: _passwordController,
                           label: 'Password',
@@ -138,7 +134,7 @@ class _LoginPageState extends State<LoginPage> {
                           },
                         ),
 
-                        // ردیف فراموشی رمز عبور و نمایش پسورد
+
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
