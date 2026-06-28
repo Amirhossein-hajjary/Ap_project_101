@@ -9,8 +9,8 @@ class PhotoDetailsPage extends StatefulWidget {
   final List<Map<String, dynamic>> photos;
   final int initialIndex;
   final List<String> userAlbums;
-  final void Function(int id) onDelete;
-  final void Function(int id, String newAlbum) onMove;
+  final Function(int id) onDelete;
+  final Function(int id, String newAlbum) onMove;
 
   const PhotoDetailsPage({
     super.key,
@@ -35,6 +35,15 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
+    _initializeSocialData();
+  }
+
+  void _initializeSocialData() {
+    for (var photo in widget.photos) {
+      photo['captions'] ??= [];
+      photo['comments'] ??= [];
+      photo['allowComments'] ??= true;
+    }
   }
 
   @override
@@ -43,133 +52,219 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
     super.dispose();
   }
 
-  Map<String, dynamic> get _currentPhoto => widget.photos[_currentIndex];
-
   void _toggleFavorite() {
     setState(() {
-      _currentPhoto['isFavorite'] = !(_currentPhoto['isFavorite'] ?? false);
+      final photo = widget.photos[_currentIndex];
+      photo['isFavorite'] = !(photo['isFavorite'] ?? false);
     });
-    AuthService.showToast(
-      _currentPhoto['isFavorite'] ? 'Added to Favorites' : 'Removed from Favorites',
-    );
+    final isFav = widget.photos[_currentIndex]['isFavorite'];
+    AuthService.showToast(isFav ? 'Added to Favorites' : 'Removed from Favorites');
   }
 
   void _sharePhoto() {
-    final photo = _currentPhoto;
-    Share.share(
-      'Photo: ${photo['name']}\nAlbum: ${photo['album']}',
-    );
-  }
-
-  void _movePhoto() {
-    String selectedAlbum = _currentPhoto['album'] as String;
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Move to Album'),
-          content: Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              ChoiceChip(
-                label: const Text('Default'),
-                selected: selectedAlbum == 'Default',
-                onSelected: (_) =>
-                    setDialogState(() => selectedAlbum = 'Default'),
-              ),
-              ...widget.userAlbums.map((a) => ChoiceChip(
-                    label: Text(a),
-                    selected: selectedAlbum == a,
-                    onSelected: (_) =>
-                        setDialogState(() => selectedAlbum = a),
-                  )),
-            ],
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
-            TextButton(
-              onPressed: () {
-                widget.onMove(_currentPhoto['id'] as int, selectedAlbum);
-                Navigator.pop(ctx);
-              },
-              child: const Text('Move'),
-            ),
-          ],
-        ),
-      ),
-    );
+    final photo = widget.photos[_currentIndex];
+    final String content = 'Check out this photo: ${photo['name']}\nAlbum: ${photo['album']}\nLink: ${photo['image']}';
+    Share.share(content);
   }
 
   void _confirmDelete() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Delete Photo'),
-        content:
-            const Text('Are you sure you want to permanently delete this photo?'),
+        content: const Text('Are you sure you want to delete this photo permanently?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
-              Navigator.pop(ctx);
-              final id = _currentPhoto['id'] as int;
-              widget.onDelete(id);
+              Navigator.pop(context);
+              final idToDelete = widget.photos[_currentIndex]['id'] as int;
+              widget.onDelete(idToDelete);
               if (widget.photos.length > 1) {
                 setState(() {
                   widget.photos.removeAt(_currentIndex);
                   if (_currentIndex >= widget.photos.length) {
                     _currentIndex = widget.photos.length - 1;
-                    _pageController.jumpToPage(_currentIndex);
                   }
                 });
               } else {
                 Navigator.pop(context);
               }
             },
-            child: const Text('Delete',
-                style: TextStyle(color: Colors.redAccent)),
+            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
     );
   }
 
+  void _showSocialAndDetails() {
+    final photo = widget.photos[_currentIndex];
+    final TextEditingController commentController = TextEditingController();
+    final TextEditingController captionController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => GlassContainer(
+          borderRadius: 32,
+          padding: const EdgeInsets.all(24),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.7,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Social & Info', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const Divider(color: Colors.white24, height: 32),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Sharing Settings
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Allow Comments', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            Switch(
+                              value: photo['allowComments'],
+                              onChanged: (val) {
+                                setModalState(() => photo['allowComments'] = val);
+                                setState(() {});
+                              },
+                              activeTrackColor: Theme.of(context).primaryColor.withAlpha(150),
+                              activeThumbColor: Theme.of(context).primaryColor,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        // Captions Section
+                        const Text('Captions', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        ...(photo['captions'] as List).map((c) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text('• $c', style: const TextStyle(color: Colors.white70)),
+                        )),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: captionController,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: const InputDecoration(
+                                  hintText: 'Add a caption...',
+                                  hintStyle: TextStyle(color: Colors.white38),
+                                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+                              onPressed: () {
+                                if (captionController.text.isNotEmpty) {
+                                  setModalState(() {
+                                    photo['captions'].add(captionController.text);
+                                    captionController.clear();
+                                  });
+                                  setState(() {});
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+                        // Comments Section
+                        const Text('Comments', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        if (!photo['allowComments'])
+                          const Text('Comments are disabled for this image.', style: TextStyle(color: Colors.white38, fontStyle: FontStyle.italic))
+                        else ...[
+                          ...(photo['comments'] as List).map((c) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('User', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                Text(c, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                              ],
+                            ),
+                          )),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: commentController,
+                                  style: const TextStyle(color: Colors.white),
+                                  decoration: const InputDecoration(
+                                    hintText: 'Add a comment...',
+                                    hintStyle: TextStyle(color: Colors.white38),
+                                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.send_rounded, color: Colors.white),
+                                onPressed: () {
+                                  if (commentController.text.isNotEmpty) {
+                                    setModalState(() {
+                                      photo['comments'].add(commentController.text);
+                                      commentController.clear();
+                                    });
+                                    setState(() {});
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showTechnicalDetails() {
-    final photo = _currentPhoto;
-    final DateTime date = photo['date'] as DateTime;
+    final photo = widget.photos[_currentIndex];
+    final DateTime date = photo['date'];
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Image Details'),
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Technical Info'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _detailRow('Title', photo['name'] as String),
-            _detailRow('Album', photo['album'] as String),
-            _detailRow('Date',
-                '${date.day}/${date.month}/${date.year}'),
-            _detailRow(
-                'Tags',
-                (photo['tags'] as String?)?.isNotEmpty == true
-                    ? photo['tags']
-                    : 'No tags'),
-            _detailRow('Storage',
-                photo['isLocal'] == true ? 'Local Device' : 'Cloud'),
+            _detailRow('Title', photo['name']),
+            _detailRow('Album', photo['album']),
+            _detailRow('Upload Date', '${date.day}/${date.month}/${date.year}'),
+            _detailRow('Tags', photo['tags'] ?? 'No tags'),
+            _detailRow('Storage', photo['isLocal'] ? 'Local Device' : 'Cloud Server'),
           ],
         ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Close')),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
         ],
       ),
     );
@@ -180,12 +275,9 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: RichText(
         text: TextSpan(
-          style: TextStyle(
-              color: Theme.of(context).textTheme.bodyLarge?.color),
+          style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
           children: [
-            TextSpan(
-                text: '$label: ',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
             TextSpan(text: value),
           ],
         ),
@@ -193,11 +285,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
     );
   }
 
-  TextStyle _overlayTextStyle({
-    double fontSize = 14,
-    FontWeight fontWeight = FontWeight.normal,
-    Color color = Colors.white,
-  }) {
+  TextStyle _outlinedTextStyle({double fontSize = 14, FontWeight fontWeight = FontWeight.normal, Color color = Colors.white}) {
     return TextStyle(
       color: color,
       fontSize: fontSize,
@@ -224,68 +312,92 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
           shadows: [Shadow(blurRadius: 10, color: Colors.black)],
         ),
         automaticallyImplyLeading: _showOverlay,
-        actions: _showOverlay
-            ? [
-                IconButton(
-                  icon: const Icon(Icons.drive_file_move_outlined),
-                  onPressed: _movePhoto,
-                  tooltip: 'Move',
+        actions: _showOverlay ? [
+          IconButton(
+            icon: const Icon(Icons.drive_file_move_outlined, color: Colors.white),
+            onPressed: () {
+              String selectedAlbum = widget.photos[_currentIndex]['album'];
+              showDialog(
+                context: context,
+                builder: (context) => StatefulBuilder(
+                  builder: (context, setDialogState) => AlertDialog(
+                    title: const Text('Move to Album'),
+                    content: Wrap(
+                      spacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Default'),
+                          selected: selectedAlbum == 'Default',
+                          onSelected: (v) => setDialogState(() => selectedAlbum = 'Default'),
+                        ),
+                        ...widget.userAlbums.map((a) => ChoiceChip(
+                          label: Text(a),
+                          selected: selectedAlbum == a,
+                          onSelected: (v) => setDialogState(() => selectedAlbum = a),
+                        )),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                      TextButton(
+                        onPressed: () {
+                          final id = widget.photos[_currentIndex]['id'] as int;
+                          widget.onMove(id, selectedAlbum);
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Move'),
+                      ),
+                    ],
+                  ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: _confirmDelete,
-                  tooltip: 'Delete',
-                ),
-              ]
-            : null,
+              );
+            },
+          ),
+          IconButton(icon: const Icon(Icons.delete_outline, color: Colors.white), onPressed: _confirmDelete),
+        ] : null,
       ),
       body: GestureDetector(
         onVerticalDragUpdate: (details) {
-          if (details.delta.dy > 12) Navigator.pop(context);
+          if (details.delta.dy > 10) Navigator.pop(context);
         },
         onTap: () => setState(() => _showOverlay = !_showOverlay),
         child: PageView.builder(
           controller: _pageController,
           itemCount: widget.photos.length,
-          onPageChanged: (index) =>
-              setState(() => _currentIndex = index),
+          onPageChanged: (index) => setState(() => _currentIndex = index),
           itemBuilder: (context, index) {
             final photo = widget.photos[index];
-            final bool isLocal = photo['isLocal'] == true;
-            final DateTime date = photo['date'] as DateTime;
-
-            Widget imageWidget(BoxFit fit) => isLocal
-                ? Image.file(File(photo['image'] as String), fit: fit)
-                : Image.network(photo['image'] as String, fit: fit);
-
+            final bool isLocal = photo['isLocal'] ?? false;
+            final DateTime date = photo['date'];
+            
             return Stack(
               fit: StackFit.expand,
               children: [
-                // Blurred background
                 Positioned.fill(
                   child: Stack(
                     children: [
-                      imageWidget(BoxFit.cover),
+                      isLocal 
+                        ? Image.file(File(photo['image']), fit: BoxFit.cover)
+                        : Image.network(photo['image'], fit: BoxFit.cover),
                       BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                        child: Container(
-                            color: Colors.black.withAlpha(100)),
+                        child: Container(color: Colors.black.withAlpha(100)),
                       ),
                     ],
                   ),
                 ),
-                // Main image with zoom
                 Center(
                   child: Hero(
                     tag: photo['id'] ?? photo['image'],
                     child: InteractiveViewer(
                       minScale: 0.5,
                       maxScale: 4.0,
-                      child: imageWidget(BoxFit.contain),
+                      child: isLocal 
+                        ? Image.file(File(photo['image']), fit: BoxFit.contain)
+                        : Image.network(photo['image'], fit: BoxFit.contain),
                     ),
                   ),
                 ),
-                // Bottom overlay panel
                 if (index == _currentIndex)
                   AnimatedPositioned(
                     duration: const Duration(milliseconds: 300),
@@ -303,65 +415,34 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              photo['name'] ?? 'Untitled',
-                              style: _overlayTextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold),
-                            ),
+                            Text(photo['name'] ?? 'Untitled', style: _outlinedTextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                const Icon(Icons.calendar_today,
-                                    color: Colors.white,
-                                    size: 16,
-                                    shadows: [
-                                      Shadow(
-                                          color: Colors.black,
-                                          blurRadius: 4)
-                                    ]),
-                                const SizedBox(width: 6),
-                                Text(
-                                    '${date.day}/${date.month}/${date.year}',
-                                    style:
-                                        _overlayTextStyle(fontSize: 13)),
+                                const Icon(Icons.calendar_today, color: Colors.white, size: 16, shadows: [Shadow(color: Colors.black, blurRadius: 4)]),
+                                const SizedBox(width: 8),
+                                Text('${date.day}/${date.month}/${date.year}', style: _outlinedTextStyle(fontSize: 14)),
                                 const Spacer(),
-                                const Icon(Icons.folder_open,
-                                    color: Colors.white,
-                                    size: 16,
-                                    shadows: [
-                                      Shadow(
-                                          color: Colors.black,
-                                          blurRadius: 4)
-                                    ]),
-                                const SizedBox(width: 6),
-                                Text(photo['album'] as String,
-                                    style:
-                                        _overlayTextStyle(fontSize: 13)),
+                                const Icon(Icons.folder_open, color: Colors.white, size: 16, shadows: [Shadow(color: Colors.black, blurRadius: 4)]),
+                                const SizedBox(width: 8),
+                                Text(photo['album'], style: _outlinedTextStyle(fontSize: 14)),
                               ],
                             ),
                             const SizedBox(height: 20),
                             Row(
-                              mainAxisAlignment:
-                                  MainAxisAlignment.spaceAround,
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                _buildActionButton(Icons.share, 'Share',
-                                    onTap: _sharePhoto),
+                                _buildActionButton(Icons.share, 'Share', onTap: _sharePhoto),
                                 _buildActionButton(
-                                  (photo['isFavorite'] ?? false)
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
+                                  (photo['isFavorite'] ?? false) ? Icons.favorite : Icons.favorite_border,
                                   'Favorite',
-                                  color: (photo['isFavorite'] ?? false)
-                                      ? Colors.redAccent
-                                      : Colors.white,
+                                  color: (photo['isFavorite'] ?? false) ? Colors.redAccent : Colors.white,
                                   onTap: _toggleFavorite,
                                 ),
-                                _buildActionButton(
-                                    Icons.info_outline, 'Details',
-                                    onTap: _showTechnicalDetails),
+                                _buildActionButton(Icons.forum_outlined, 'Social', onTap: _showSocialAndDetails),
+                                _buildActionButton(Icons.info_outline, 'Technical', onTap: _showTechnicalDetails),
                               ],
-                            ),
+                            )
                           ],
                         ),
                       ),
@@ -375,28 +456,17 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
     );
   }
 
-  Widget _buildActionButton(
-    IconData icon,
-    String label, {
-    Color color = Colors.white,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildActionButton(IconData icon, String label, {Color color = Colors.white, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon,
-                color: color,
-                shadows: const [
-                  Shadow(color: Colors.black, blurRadius: 8)
-                ]),
+            Icon(icon, color: color, shadows: const [Shadow(color: Colors.black, blurRadius: 8)]),
             const SizedBox(height: 4),
-            Text(label,
-                style: _overlayTextStyle(fontSize: 12, color: color)),
+            Text(label, style: _outlinedTextStyle(fontSize: 12, color: color)),
           ],
         ),
       ),

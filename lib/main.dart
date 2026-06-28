@@ -7,6 +7,10 @@ import 'themes/app_theme.dart';
 import 'themes/theme_provider.dart';
 import 'services/auth_service.dart';
 
+import 'providers/gallery_provider.dart';
+import 'pages/main_scaffold.dart';
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -19,12 +23,16 @@ void main() async {
   final bool loggedIn = await AuthService.isLoggedIn();
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => GalleryProvider()),
+      ],
       child: MyApp(isLoggedIn: loggedIn),
     ),
   );
 }
+
 
 class MyApp extends StatelessWidget {
   final bool isLoggedIn;
@@ -39,7 +47,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeProvider.themeMode,
-      home: isLoggedIn ? const GalleryPage() : const RegisterPage(),
+      home: isLoggedIn ? const MainScaffold() : const RegisterPage(),
       debugShowCheckedModeBanner: false,
     );
   }

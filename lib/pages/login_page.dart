@@ -3,7 +3,7 @@ import '../widgets/custom_text_field.dart';
 import '../widgets/glass_container.dart';
 import '../services/auth_service.dart';
 import 'register_page.dart';
-import 'gallery_page.dart';
+import 'main_scaffold.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -17,7 +17,6 @@ class _LoginPageState extends State<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -27,34 +26,25 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      AuthService.showToast('Invalid input data', isError: true);
-      return;
-    }
-    setState(() => _isLoading = true);
-    try {
-      await Future.delayed(const Duration(milliseconds: 400));
-      await AuthService.setLoggedIn(true,
-          username: _usernameController.text.trim());
+    if (_formKey.currentState!.validate()) {
+      // Mocking server login verification
       AuthService.showToast('Login Successful');
+      await AuthService.setLoggedIn(true);
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const GalleryPage()),
+          MaterialPageRoute(builder: (context) => const MainScaffold()),
         );
       }
-    } catch (e) {
-      AuthService.showToast('Login failed. Try again.', isError: true);
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    } else {
+      AuthService.showToast('Invalid input data', isError: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
+    
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -63,9 +53,9 @@ class _LoginPageState extends State<LoginPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: isDark
-                ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                : [const Color(0xFFE0E7FF), const Color(0xFFF3F4F6)],
+            colors: theme.brightness == Brightness.dark 
+              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
+              : [const Color(0xFFE0E7FF), const Color(0xFFF3F4F6)],
           ),
         ),
         child: SafeArea(
@@ -77,14 +67,12 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 20),
-                    Icon(Icons.lock_person_outlined,
-                        size: 60, color: theme.primaryColor),
+                    Icon(Icons.lock_person_outlined, size: 60, color: theme.primaryColor),
                     const SizedBox(height: 16),
                     Text('Welcome Back', style: theme.textTheme.headlineLarge),
-                    const SizedBox(height: 8),
-                    Text('Sign in to continue',
-                        style: theme.textTheme.bodyMedium),
+                    Text('Sign in to continue', style: theme.textTheme.bodyMedium),
                     const SizedBox(height: 40),
+                    
                     GlassContainer(
                       child: Column(
                         children: [
@@ -93,15 +81,9 @@ class _LoginPageState extends State<LoginPage> {
                             label: 'Username',
                             hint: 'Email or Phone',
                             icon: Icons.person_outline,
-                            keyboardType: TextInputType.emailAddress,
-                            textInputAction: TextInputAction.next,
                             validator: (v) {
-                              if (v == null || v.trim().isEmpty) {
-                                return 'This field is required';
-                              }
-                              if (!AuthService.isValidUsername(v.trim())) {
-                                return 'Invalid format';
-                              }
+                              if (v == null || v.isEmpty) return 'Required';
+                              if (!AuthService.isValidUsername(v)) return 'Invalid format';
                               return null;
                             },
                           ),
@@ -112,65 +94,42 @@ class _LoginPageState extends State<LoginPage> {
                             hint: '••••••••',
                             icon: Icons.lock_outline,
                             obscureText: !_isPasswordVisible,
-                            textInputAction: TextInputAction.done,
                             suffixIcon: IconButton(
-                              icon: Icon(
-                                _isPasswordVisible
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                                size: 20,
-                              ),
-                              onPressed: () => setState(() =>
-                                  _isPasswordVisible = !_isPasswordVisible),
+                              icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, size: 20),
+                              onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                             ),
-                            validator: (v) =>
-                                (v == null || v.isEmpty) ? 'Password required' : null,
+                            validator: (v) => v!.isEmpty ? 'Password required' : null,
                           ),
                           const SizedBox(height: 20),
                           SizedBox(
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
-                              onPressed: _isLoading ? null : _login,
-                              child: _isLoading
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white),
-                                    )
-                                  : const Text('Login',
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold)),
+                              onPressed: _login,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: theme.primaryColor,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                elevation: 0,
+                              ),
+                              child: const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                             ),
                           ),
                         ],
                       ),
                     ),
+                    
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("Don't have an account?",
-                            style: theme.textTheme.bodyMedium),
+                        Text("Don't have an account?", style: theme.textTheme.bodyMedium),
                         TextButton(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const RegisterPage()),
-                          ),
-                          child: Text(
-                            'Sign Up',
-                            style: TextStyle(
-                                color: theme.primaryColor,
-                                fontWeight: FontWeight.bold),
-                          ),
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterPage())),
+                          child: Text('Sign Up', style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
                   ],
                 ),
               ),
