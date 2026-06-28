@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../themes/app_theme.dart';
 
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -9,6 +8,8 @@ class CustomTextField extends StatelessWidget {
   final bool obscureText;
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
+  final Widget? suffixIcon;
+  final Function(String)? onChanged;
 
   const CustomTextField({
     super.key,
@@ -19,26 +20,58 @@ class CustomTextField extends StatelessWidget {
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
     this.validator,
+    this.suffixIcon,
+    this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      validator: validator,
-      style: const TextStyle(color: AppTheme.white),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Icon(icon, color: AppTheme.goldColor),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
+          ),
         ),
-        filled: true,
-        fillColor: AppTheme.blackLight,
-      ),
+        TextFormField(
+          controller: controller,
+          obscureText: obscureText,
+          keyboardType: keyboardType,
+          validator: validator,
+          onChanged: onChanged,
+          style: theme.textTheme.bodyLarge,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.black38),
+            prefixIcon: Icon(icon, color: theme.primaryColor, size: 20),
+            suffixIcon: suffixIcon,
+            filled: true,
+            fillColor: isDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: Colors.transparent),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: theme.primaryColor.withAlpha(100), width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          ),
+        ),
+      ],
     );
   }
 }
