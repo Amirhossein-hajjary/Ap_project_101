@@ -17,6 +17,20 @@ class _LoginPageState extends State<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isContentVisible = false; // وضعیت نمایش محتوا
+
+  @override
+  void initState() {
+    super.initState();
+    // ایجاد تاخیر یک ثانیه‌ای برای نمایش باکس لاگین
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() {
+          _isContentVisible = true;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -27,7 +41,6 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      // Mocking server login verification
       AuthService.showToast('Login Successful');
       await AuthService.setLoggedIn(true);
       if (mounted) {
@@ -44,18 +57,16 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: theme.brightness == Brightness.dark 
-              ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-              : [const Color(0xFFE0E7FF), const Color(0xFFF3F4F6)],
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/logback.jpg'),
+            fit: BoxFit.cover,
           ),
         ),
         child: SafeArea(
@@ -65,70 +76,82 @@ class _LoginPageState extends State<LoginPage> {
               child: Form(
                 key: _formKey,
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 20),
-                    Icon(Icons.lock_person_outlined, size: 60, color: theme.primaryColor),
-                    const SizedBox(height: 16),
-                    Text('Welcome Back', style: theme.textTheme.headlineLarge),
-                    Text('Sign in to continue', style: theme.textTheme.bodyMedium),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 5),
+                    Icon(Icons.lock_person_outlined, size: 60, color: Colors.white),
+                    const SizedBox(height: 8),
+                    Text('Welcome Back', style: theme.textTheme.headlineLarge?.copyWith(color: Colors.white)),
+                    Text('Sign in to continue', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70)),
                     
-                    GlassContainer(
-                      child: Column(
-                        children: [
-                          CustomTextField(
-                            controller: _usernameController,
-                            label: 'Username',
-                            hint: 'Email or Phone',
-                            icon: Icons.person_outline,
-                            validator: (v) {
-                              if (v == null || v.isEmpty) return 'Required';
-                              if (!AuthService.isValidUsername(v)) return 'Invalid format';
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          CustomTextField(
-                            controller: _passwordController,
-                            label: 'Password',
-                            hint: '••••••••',
-                            icon: Icons.lock_outline,
-                            obscureText: !_isPasswordVisible,
-                            suffixIcon: IconButton(
-                              icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, size: 20),
-                              onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
-                            ),
-                            validator: (v) => v!.isEmpty ? 'Password required' : null,
-                          ),
-                          const SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: _login,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: theme.primaryColor,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                elevation: 0,
+                    // انیمیشن برای باکس ورود
+                    AnimatedOpacity(
+                      duration: const Duration(milliseconds: 800),
+                      opacity: _isContentVisible ? 1.0 : 0.0,
+                      child: AnimatedPadding(
+                        duration: const Duration(milliseconds: 800),
+                        padding: EdgeInsets.only(top: _isContentVisible ? 150 : 200),
+                        child: Column(
+                          children: [
+                            GlassContainer(
+                              child: Column(
+                                children: [
+                                  CustomTextField(
+                                    controller: _usernameController,
+                                    label: 'Username',
+                                    hint: 'Email or Phone',
+                                    icon: Icons.person_outline,
+                                    validator: (v) {
+                                      if (v == null || v.isEmpty) return 'Required';
+                                      if (!AuthService.isValidUsername(v)) return 'Invalid format';
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+                                  CustomTextField(
+                                    controller: _passwordController,
+                                    label: 'Password',
+                                    hint: '••••••••',
+                                    icon: Icons.lock_outline,
+                                    obscureText: !_isPasswordVisible,
+                                    suffixIcon: IconButton(
+                                      icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, size: 20),
+                                      onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                                    ),
+                                    validator: (v) => v!.isEmpty ? 'Password required' : null,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 56,
+                                    child: ElevatedButton(
+                                      onPressed: _login,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: theme.primaryColor,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        elevation: 0,
+                                      ),
+                                      child: const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              child: const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text("Don't have an account?", style: theme.textTheme.bodyMedium),
-                        TextButton(
-                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterPage())),
-                          child: Text('Sign Up', style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text("Don't have an account?", style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+                                TextButton(
+                                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterPage())),
+                                  child: Text('Sign Up', style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),

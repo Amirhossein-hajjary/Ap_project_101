@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:ui';
 import 'gallery_page.dart';
+import 'albums_overview_page.dart';
 import 'search_page.dart';
 import 'profile_page.dart';
 import '../providers/gallery_provider.dart';
@@ -25,11 +26,12 @@ class _MainScaffoldState extends State<MainScaffold> {
 
     final List<Widget> pages = [
       const GalleryPage(),
+      const AlbumsOverviewPage(),
       SearchPage(
         allPhotos: galleryProvider.allPhotos,
         userAlbums: galleryProvider.userAlbums,
         onDelete: galleryProvider.deletePhoto,
-        onMove: galleryProvider.updatePhotoAlbum,
+        onMove: (id, newAlbum) => galleryProvider.addPhotoToAlbum(id, newAlbum),
       ),
       ProfilePage(
         totalPhotos: galleryProvider.allPhotos.length,
@@ -44,7 +46,7 @@ class _MainScaffoldState extends State<MainScaffold> {
         children: pages,
       ),
       bottomNavigationBar: Container(
-        margin: const EdgeInsets.fromLTRB(24, 0, 24, 30),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 30),
         height: 70,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(35),
@@ -65,9 +67,10 @@ class _MainScaffoldState extends State<MainScaffold> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildNavItem(0, Icons.grid_view_rounded, 'Gallery'),
-                  _buildNavItem(1, Icons.search_rounded, 'Search'),
-                  _buildNavItem(2, Icons.person_outline_rounded, 'Profile'),
+                  _buildNavItem(0, Icons.grid_view_rounded, 'Home'),
+                  _buildNavItem(1, Icons.folder_copy_rounded, 'Albums'),
+                  _buildNavItem(2, Icons.search_rounded, 'Search'),
+                  _buildNavItem(3, Icons.person_outline_rounded, 'Profile'),
                 ],
               ),
             ),
@@ -85,7 +88,7 @@ class _MainScaffoldState extends State<MainScaffold> {
       onTap: () => setState(() => _currentIndex = index),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? theme.primaryColor.withAlpha(40) : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
@@ -96,7 +99,7 @@ class _MainScaffoldState extends State<MainScaffold> {
             Icon(
               icon,
               color: isSelected ? theme.primaryColor : Colors.grey.shade500,
-              size: 26,
+              size: 24,
             ),
             if (isSelected)
               Container(

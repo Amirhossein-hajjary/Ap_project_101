@@ -2,8 +2,10 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:provider/provider.dart';
 import '../widgets/glass_container.dart';
 import '../services/auth_service.dart';
+import '../providers/gallery_provider.dart';
 
 class PhotoDetailsPage extends StatefulWidget {
   final List<Map<String, dynamic>> photos;
@@ -43,6 +45,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
       photo['captions'] ??= [];
       photo['comments'] ??= [];
       photo['allowComments'] ??= true;
+      photo['albums'] ??= [photo['album'] ?? 'Default'];
     }
   }
 
@@ -63,8 +66,66 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
 
   void _sharePhoto() {
     final photo = widget.photos[_currentIndex];
-    final String content = 'Check out this photo: ${photo['name']}\nAlbum: ${photo['album']}\nLink: ${photo['image']}';
+    final String content = 'Check out this photo: ${photo['name']}\nAlbums: ${(photo['albums'] as List).join(', ')}\nLink: ${photo['image']}';
     Share.share(content);
+  }
+
+  void _manageAlbums() {
+    final photo = widget.photos[_currentIndex];
+    final provider = Provider.of<GalleryProvider>(context, listen: false);
+    final allAvailableAlbums = ['Default', ...provider.userAlbums];
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Manage Photo Albums'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('An image can exist in multiple albums simultaneously.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const SizedBox(height: 16),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: allAvailableAlbums.length,
+                    itemBuilder: (context, index) {
+                      final albumName = allAvailableAlbums[index];
+                      final bool isInAlbum = (photo['albums'] as List).contains(albumName);
+                      
+                      return CheckboxListTile(
+                        title: Text(albumName),
+                        value: isInAlbum,
+                        onChanged: (val) {
+                          setDialogState(() {
+                            if (val == true) {
+                              provider.addPhotoToAlbum(photo['id'], albumName);
+                            } else {
+                              // Prevent removing from all albums
+                              if ((photo['albums'] as List).length > 1) {
+                                provider.removePhotoFromAlbum(photo['id'], albumName);
+                              } else {
+                                AuthService.showToast('At least one album is required', isError: true);
+                              }
+                            }
+                          });
+                          setState(() {}); // Refresh main page UI
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Done')),
+          ],
+        ),
+      ),
+    );
   }
 
   void _confirmDelete() {
@@ -74,7 +135,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
         backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Delete Photo'),
-        content: const Text('Are you sure you want to delete this photo permanently?'),
+        content: const Text('Are you sure you want to delete this photo permanently from all albums?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
@@ -134,7 +195,6 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Sharing Settings
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -151,7 +211,6 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        // Captions Section
                         const Text('Captions', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 12),
                         ...(photo['captions'] as List).map((c) => Padding(
@@ -186,7 +245,6 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                           ],
                         ),
                         const SizedBox(height: 32),
-                        // Comments Section
                         const Text('Comments', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 12),
                         if (!photo['allowComments'])
@@ -257,7 +315,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _detailRow('Title', photo['name']),
-            _detailRow('Album', photo['album']),
+            _detailRow('Albums', (photo['albums'] as List).join(', ')),
             _detailRow('Upload Date', '${date.day}/${date.month}/${date.year}'),
             _detailRow('Tags', photo['tags'] ?? 'No tags'),
             _detailRow('Storage', photo['isLocal'] ? 'Local Device' : 'Cloud Server'),
@@ -314,44 +372,8 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
         automaticallyImplyLeading: _showOverlay,
         actions: _showOverlay ? [
           IconButton(
-            icon: const Icon(Icons.drive_file_move_outlined, color: Colors.white),
-            onPressed: () {
-              String selectedAlbum = widget.photos[_currentIndex]['album'];
-              showDialog(
-                context: context,
-                builder: (context) => StatefulBuilder(
-                  builder: (context, setDialogState) => AlertDialog(
-                    title: const Text('Move to Album'),
-                    content: Wrap(
-                      spacing: 8,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Default'),
-                          selected: selectedAlbum == 'Default',
-                          onSelected: (v) => setDialogState(() => selectedAlbum = 'Default'),
-                        ),
-                        ...widget.userAlbums.map((a) => ChoiceChip(
-                          label: Text(a),
-                          selected: selectedAlbum == a,
-                          onSelected: (v) => setDialogState(() => selectedAlbum = a),
-                        )),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                      TextButton(
-                        onPressed: () {
-                          final id = widget.photos[_currentIndex]['id'] as int;
-                          widget.onMove(id, selectedAlbum);
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Move'),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+            icon: const Icon(Icons.folder_shared_outlined, color: Colors.white),
+            onPressed: _manageAlbums,
           ),
           IconButton(icon: const Icon(Icons.delete_outline, color: Colors.white), onPressed: _confirmDelete),
         ] : null,
@@ -425,7 +447,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                                 const Spacer(),
                                 const Icon(Icons.folder_open, color: Colors.white, size: 16, shadows: [Shadow(color: Colors.black, blurRadius: 4)]),
                                 const SizedBox(width: 8),
-                                Text(photo['album'], style: _outlinedTextStyle(fontSize: 14)),
+                                Text((photo['albums'] as List).join(', '), style: _outlinedTextStyle(fontSize: 14)),
                               ],
                             ),
                             const SizedBox(height: 20),
