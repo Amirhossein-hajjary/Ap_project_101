@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
 import '../themes/theme_provider.dart';
+import '../themes/app_theme.dart';
 import '../providers/gallery_provider.dart';
+import '../widgets/glass_container.dart';
 import '../widgets/pressable.dart';
 import '../services/auth_service.dart';
 import 'photo_details_page.dart';
@@ -78,6 +80,85 @@ class _GalleryPageState extends State<GalleryPage> {
     return list;
   }
 
+  void _bulkMoveToAlbum() {
+    final provider = Provider.of<GalleryProvider>(context, listen: false);
+    if (provider.userAlbums.isEmpty) {
+      AuthService.showToast('No albums available. Create one first.', isError: true);
+      return;
+    }
+    String selectedMoveAlbum = provider.userAlbums.first;
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Move to Album'),
+          content: Wrap(
+            spacing: AppTheme.spacingSm,
+            children: provider.userAlbums.map((a) => ChoiceChip(
+              label: Text(a),
+              selected: selectedMoveAlbum == a,
+              onSelected: (v) => setDialogState(() => selectedMoveAlbum = a),
+            )).toList(),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () {
+                List<int> idsToMove = _selectedIndices.map((i) => _getFilteredPhotos(provider.allPhotos)[i]['id'] as int).toList();
+                provider.bulkMove(idsToMove, selectedMoveAlbum);
+                setState(() {
+                  _selectedIndices.clear();
+                  _isSelectionMode = false;
+                });
+                Navigator.pop(context);
+                AuthService.showToast('Moved to $selectedMoveAlbum');
+              },
+              child: const Text('Move'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(ThemeProvider provider, ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl, vertical: AppTheme.spacingMd),
+      child: GlassContainer(
+        borderRadius: AppTheme.radiusLg,
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg, vertical: AppTheme.spacingMd),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Gallery', style: theme.textTheme.headlineMedium),
+                  Text('Captured Memories', style: theme.textTheme.labelMedium),
+                ],
+              ),
+            ),
+            Pressable(
+              onTap: () => provider.toggleTheme(!provider.isDarkMode),
+              child: Container(
+                padding: const EdgeInsets.all(AppTheme.spacingSm),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withAlpha(20),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  provider.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded, 
+                  size: 22, 
+                  color: theme.primaryColor
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -96,8 +177,8 @@ class _GalleryPageState extends State<GalleryPage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: theme.brightness == Brightness.dark
-                ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                : [theme.scaffoldBackgroundColor, theme.scaffoldBackgroundColor.withAlpha(200)],
+                ? [AppTheme.darkBg, AppTheme.darkSurface]
+                : [AppTheme.lightBg, AppTheme.lightBg.withAlpha(220)],
           ),
         ),
         child: SafeArea(
@@ -107,17 +188,16 @@ class _GalleryPageState extends State<GalleryPage> {
               _buildHeader(themeProvider, theme),
               if (_isSelectionMode) _buildSelectionToolbar(theme, filteredPhotos),
               _buildFilterBar(theme),
-              // Album selector REMOVED from Home Screen
               Expanded(
                 child: photosToShow.isEmpty 
                   ? _buildEmptyState(theme)
                   : GridView.builder(
                       controller: _scrollController,
-                      padding: const EdgeInsets.fromLTRB(2, 2, 2, 100),
+                      padding: const EdgeInsets.fromLTRB(AppTheme.spacingSm, AppTheme.spacingSm, AppTheme.spacingSm, 100),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 3,
-                        mainAxisSpacing: 2,
-                        crossAxisSpacing: 2,
+                        mainAxisSpacing: 4,
+                        crossAxisSpacing: 4,
                       ),
                       itemCount: photosToShow.length + (_isLoadingMore ? 9 : 0),
                       itemBuilder: (context, index) {
@@ -137,7 +217,7 @@ class _GalleryPageState extends State<GalleryPage> {
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UploadPage())),
           child: FloatingActionButton(
             backgroundColor: theme.primaryColor,
-            elevation: 8,
+            elevation: 4,
             onPressed: null,
             child: const Icon(Icons.add_a_photo_rounded, color: Colors.white),
           ),
@@ -148,45 +228,36 @@ class _GalleryPageState extends State<GalleryPage> {
 
   Widget _buildEmptyState(ThemeData theme) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.photo_library_outlined, size: 80, color: theme.hintColor.withAlpha(100)),
-          const SizedBox(height: 16),
-          const Text('No photos found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text('Add your first memory', style: TextStyle(color: theme.hintColor.withAlpha(150))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(ThemeProvider provider, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Gallery', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
-                Text('Captured Memories', style: TextStyle(fontSize: 13, color: theme.textTheme.bodyMedium?.color?.withAlpha(150))),
-              ],
-            ),
+      child: TweenAnimationBuilder<double>(
+        duration: const Duration(seconds: 1),
+        tween: Tween(begin: 0.0, end: 1.0),
+        builder: (context, value, child) => Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
           ),
-          Pressable(
-            onTap: () => provider.toggleTheme(!provider.isDarkMode),
-            child: Container(
-              padding: const EdgeInsets.all(10),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.spacing2Xl),
               decoration: BoxDecoration(
-                color: theme.primaryColor.withAlpha(30),
+                color: theme.primaryColor.withAlpha(10),
                 shape: BoxShape.circle,
               ),
-              child: Icon(provider.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded, size: 20, color: theme.primaryColor),
+              child: Icon(Icons.photo_library_outlined, size: 80, color: theme.primaryColor.withAlpha(60)),
             ),
-          ),
-        ],
+            const SizedBox(height: AppTheme.spacingXl),
+            Text('No photos found', style: theme.textTheme.titleLarge),
+            const SizedBox(height: AppTheme.spacingSm),
+            Text(
+              'Add your first memory to get started', 
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor)
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -194,19 +265,25 @@ class _GalleryPageState extends State<GalleryPage> {
   Widget _buildSelectionToolbar(ThemeData theme, List<Map<String, dynamic>> filteredPhotos) {
     final provider = Provider.of<GalleryProvider>(context, listen: false);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg, vertical: AppTheme.spacingSm),
+      margin: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl, vertical: AppTheme.spacingSm),
       decoration: BoxDecoration(
-        color: theme.primaryColor.withAlpha(40),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: theme.primaryColor.withAlpha(60)),
+        color: theme.primaryColor.withAlpha(20),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: theme.primaryColor.withAlpha(40)),
       ),
       child: Row(
         children: [
           Text('${_selectedIndices.length} selected', style: TextStyle(fontWeight: FontWeight.w800, color: theme.primaryColor)),
           const Spacer(),
           IconButton(
-            icon: const Icon(Icons.delete_rounded, color: Colors.redAccent, size: 20),
+            icon: const Icon(Icons.drive_file_move_rounded, size: 22), 
+            onPressed: _bulkMoveToAlbum,
+            color: theme.primaryColor,
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_rounded, size: 22),
+            color: theme.colorScheme.error,
             onPressed: () {
               List<int> idsToRemove = _selectedIndices.map((i) => filteredPhotos[i]['id'] as int).toList();
               provider.bulkDelete(idsToRemove);
@@ -217,7 +294,7 @@ class _GalleryPageState extends State<GalleryPage> {
               AuthService.showToast('Deleted selected');
             },
           ),
-          IconButton(icon: const Icon(Icons.close_rounded, size: 20), onPressed: () => setState(() { _selectedIndices.clear(); _isSelectionMode = false; })),
+          IconButton(icon: const Icon(Icons.close_rounded, size: 22), onPressed: () => setState(() { _selectedIndices.clear(); _isSelectionMode = false; })),
         ],
       ),
     );
@@ -225,23 +302,26 @@ class _GalleryPageState extends State<GalleryPage> {
 
   Widget _buildFilterBar(ThemeData theme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl, vertical: AppTheme.spacingSm),
       child: Row(
         children: [
           DropdownButton<String>(
             value: _sortBy,
             underline: const SizedBox(),
             icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-            items: ['Date', 'Name'].map((s) => DropdownMenuItem(value: s, child: Text('Sort by $s', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)))).toList(),
+            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+            items: ['Date', 'Name'].map((s) => DropdownMenuItem(value: s, child: Text('Sort by $s'))).toList(),
             onChanged: (val) => setState(() { _sortBy = val!; }),
           ),
           const Spacer(),
           FilterChip(
-            label: const Text('Favorites', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            label: const Text('Favorites'),
             selected: _showOnlyFavorites,
             onSelected: (val) => setState(() { _showOnlyFavorites = val; }),
-            selectedColor: theme.primaryColor.withAlpha(50),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            selectedColor: theme.primaryColor.withAlpha(30),
+            checkmarkColor: theme.primaryColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSm)),
+            side: BorderSide.none,
           ),
         ],
       ),
@@ -269,9 +349,9 @@ class _GalleryPageState extends State<GalleryPage> {
           Navigator.push(context, MaterialPageRoute(builder: (_) => PhotoDetailsPage(
             photos: photos,
             initialIndex: index,
-            userAlbums: provider.displayAlbums,
+            userAlbums: provider.userAlbums,
             onDelete: (id) => provider.deletePhoto(id),
-            onMove: (id, newAlbum) => provider.addPhotoToAlbum(id, newAlbum),
+            onUpdateAlbums: (id, albums) => provider.updatePhotoAlbums(id, albums),
           )));
         }
       },
@@ -280,10 +360,30 @@ class _GalleryPageState extends State<GalleryPage> {
         children: [
           Hero(
             tag: photo['id'] ?? photo['image'],
-            child: photo['isLocal'] ? Image.file(File(photo['image']), fit: BoxFit.cover) : Image.network(photo['image'], fit: BoxFit.cover),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                image: DecorationImage(
+                  image: photo['isLocal'] ? FileImage(File(photo['image'])) : NetworkImage(photo['image']) as ImageProvider,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
           ),
-          if (isSelected) Positioned.fill(child: Container(color: theme.primaryColor.withAlpha(100), child: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 32))),
-          if (photo['isFavorite'] == true) const Positioned(top: 6, right: 6, child: Icon(Icons.favorite_rounded, color: Colors.redAccent, size: 16)),
+          if (isSelected) 
+            Container(
+              decoration: BoxDecoration(
+                color: theme.primaryColor.withAlpha(100),
+                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              ),
+              child: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 32)
+            ),
+          if (photo['isFavorite'] == true) 
+            Positioned(
+              top: 6, 
+              right: 6, 
+              child: Icon(Icons.favorite_rounded, color: theme.colorScheme.error, size: 16)
+            ),
         ],
       ),
     );
@@ -293,7 +393,12 @@ class _GalleryPageState extends State<GalleryPage> {
     return Shimmer.fromColors(
       baseColor: Colors.grey.withAlpha(50),
       highlightColor: Colors.grey.withAlpha(20),
-      child: Container(color: Colors.white),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        ),
+      ),
     );
   }
 }

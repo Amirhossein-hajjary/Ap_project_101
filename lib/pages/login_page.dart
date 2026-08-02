@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/glass_container.dart';
 import '../services/auth_service.dart';
+import '../providers/auth_provider.dart';
+import '../themes/app_theme.dart';
 import 'register_page.dart';
 import 'main_scaffold.dart';
 
@@ -17,19 +20,30 @@ class _LoginPageState extends State<LoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
-  bool _isContentVisible = false; // وضعیت نمایش محتوا
+  bool _isContentVisible = false;
 
   @override
   void initState() {
     super.initState();
-    // ایجاد تاخیر یک ثانیه‌ای برای نمایش باکس لاگین
-    Future.delayed(const Duration(seconds: 1), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
-        setState(() {
-          _isContentVisible = true;
-        });
+        setState(() => _isContentVisible = true);
+        _checkBiometrics();
       }
     });
+  }
+
+  Future<void> _checkBiometrics() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (authProvider.biometricEnabled) {
+      bool success = await authProvider.loginWithBiometrics();
+      if (success && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainScaffold()),
+        );
+      }
+    }
   }
 
   @override
@@ -50,115 +64,157 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } else {
-      AuthService.showToast('Invalid input data', isError: true);
+      AuthService.showToast('Invalid credentials', isError: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/logback.jpg'),
-            fit: BoxFit.cover,
+      body: Stack(
+        children: [
+          // Background Image
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/logback.jpg',
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 5),
-                    Icon(Icons.lock_person_outlined, size: 60, color: Colors.white),
-                    const SizedBox(height: 8),
-                    Text('Welcome Back', style: theme.textTheme.headlineLarge?.copyWith(color: Colors.white)),
-                    Text('Sign in to continue', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70)),
-                    
-                    // انیمیشن برای باکس ورود
-                    AnimatedOpacity(
-                      duration: const Duration(milliseconds: 800),
-                      opacity: _isContentVisible ? 1.0 : 0.0,
-                      child: AnimatedPadding(
+          // Dark Gradient Overlay for Contrast
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withAlpha(80),
+                    Colors.black.withAlpha(180),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: AppTheme.spacingLg),
+                      Hero(
+                        tag: 'auth_icon',
+                        child: Icon(Icons.lock_person_rounded, size: 64, color: Colors.white),
+                      ),
+                      const SizedBox(height: AppTheme.spacingSm),
+                      Text(
+                        'Welcome Back', 
+                        style: theme.textTheme.headlineLarge?.copyWith(color: Colors.white)
+                      ),
+                      Text(
+                        'Sign in to your secure gallery', 
+                        style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withAlpha(180))
+                      ),
+                      
+                      const SizedBox(height: AppTheme.spacing3Xl),
+
+                      AnimatedOpacity(
                         duration: const Duration(milliseconds: 800),
-                        padding: EdgeInsets.only(top: _isContentVisible ? 150 : 200),
+                        opacity: _isContentVisible ? 1.0 : 0.0,
                         child: Column(
                           children: [
                             GlassContainer(
+                              borderRadius: AppTheme.radiusXl,
                               child: Column(
                                 children: [
                                   CustomTextField(
                                     controller: _usernameController,
                                     label: 'Username',
                                     hint: 'Email or Phone',
-                                    icon: Icons.person_outline,
+                                    icon: Icons.person_outline_rounded,
                                     validator: (v) {
                                       if (v == null || v.isEmpty) return 'Required';
                                       if (!AuthService.isValidUsername(v)) return 'Invalid format';
                                       return null;
                                     },
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: AppTheme.spacingLg),
                                   CustomTextField(
                                     controller: _passwordController,
                                     label: 'Password',
                                     hint: '••••••••',
-                                    icon: Icons.lock_outline,
+                                    icon: Icons.lock_outline_rounded,
                                     obscureText: !_isPasswordVisible,
                                     suffixIcon: IconButton(
-                                      icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, size: 20),
+                                      icon: Icon(_isPasswordVisible ? Icons.visibility_rounded : Icons.visibility_off_rounded, size: 20, color: Colors.white70),
                                       onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                                     ),
-                                    validator: (v) => v!.isEmpty ? 'Password required' : null,
+                                    validator: (v) => (v == null || v.isEmpty) ? 'Password required' : null,
                                   ),
-                                  const SizedBox(height: 20),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 56,
-                                    child: ElevatedButton(
-                                      onPressed: _login,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: theme.primaryColor,
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                        elevation: 0,
+                                  const SizedBox(height: AppTheme.spacingXl),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: _login,
+                                          child: const Text('Login'),
+                                        ),
                                       ),
-                                      child: const Text('Login', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                                    ),
+                                      if (authProvider.biometricEnabled) ...[
+                                        const SizedBox(width: AppTheme.spacingMd),
+                                        InkWell(
+                                          onTap: _checkBiometrics,
+                                          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                                          child: Container(
+                                            height: 56,
+                                            width: 56,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withAlpha(30),
+                                              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                                              border: Border.all(color: Colors.white.withAlpha(50)),
+                                            ),
+                                            child: const Icon(Icons.fingerprint_rounded, color: Colors.white, size: 32),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: AppTheme.spacingXl),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text("Don't have an account?", style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+                                Text(
+                                  "Don't have an account? ", 
+                                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.white.withAlpha(180))
+                                ),
                                 TextButton(
                                   onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterPage())),
-                                  child: Text('Sign Up', style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold)),
+                                  child: Text(
+                                    'Sign Up', 
+                                    style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.w800)
+                                  ),
                                 ),
                               ],
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

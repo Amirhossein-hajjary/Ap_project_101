@@ -12,7 +12,7 @@ class PhotoDetailsPage extends StatefulWidget {
   final int initialIndex;
   final List<String> userAlbums;
   final Function(int id) onDelete;
-  final Function(int id, String newAlbum) onMove;
+  final Function(int id, List<String> albums) onUpdateAlbums;
 
   const PhotoDetailsPage({
     super.key,
@@ -20,7 +20,7 @@ class PhotoDetailsPage extends StatefulWidget {
     required this.initialIndex,
     required this.userAlbums,
     required this.onDelete,
-    required this.onMove,
+    required this.onUpdateAlbums,
   });
 
   @override

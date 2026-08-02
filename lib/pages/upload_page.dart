@@ -3,13 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/gallery_provider.dart';
-import '../widgets/glass_container.dart';
-import '../widgets/custom_text_field.dart';
-import '../widgets/pressable.dart';
 import '../services/auth_service.dart';
+import '../widgets/custom_text_field.dart';
+import '../widgets/glass_container.dart';
+import '../widgets/pressable.dart';
+import '../themes/app_theme.dart';
 
 class UploadPage extends StatefulWidget {
-  const UploadPage({super.key});
+  final XFile? initialImage;
+  const UploadPage({super.key, this.initialImage});
 
   @override
   State<UploadPage> createState() => _UploadPageState();
@@ -17,242 +19,106 @@ class UploadPage extends StatefulWidget {
 
 class _UploadPageState extends State<UploadPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _captionController = TextEditingController();
-  final _tagsController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _tagsController = TextEditingController();
+  final TextEditingController _captionController = TextEditingController();
+  final TextEditingController _objectsController = TextEditingController();
+  final TextEditingController _categoriesController = TextEditingController();
   
-  File? _selectedImage;
-  String _selectedAlbum = 'Default';
+  final List<String> _selectedAlbums = [];
+  File? _imageFile;
   final ImagePicker _picker = ImagePicker();
+  DateTime _selectedDate = DateTime.now();
+  bool _isUploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialImage != null) {
+      _imageFile = File(widget.initialImage!.path);
+    }
+  }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _captionController.dispose();
+    _titleController.dispose();
     _tagsController.dispose();
+    _captionController.dispose();
+    _objectsController.dispose();
+    _categoriesController.dispose();
     super.dispose();
   }
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: source,
-        imageQuality: 85,
-      );
-      if (image != null) {
+      final XFile? file = await _picker.pickImage(source: source);
+      if (file != null) {
         setState(() {
-          _selectedImage = File(image.path);
-          if (_nameController.text.isEmpty) {
-            _nameController.text = 'Image_${DateTime.now().millisecondsSinceEpoch % 10000}';
-          }
+          _imageFile = File(file.path);
         });
       }
     } catch (e) {
-      AuthService.showToast('Error picking image: $e', isError: true);
+      AuthService.showToast('Failed to pick image', isError: true);
     }
   }
 
-  void _upload() {
-    if (_selectedImage == null) {
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  void _submitUpload() async {
+    if (_imageFile == null) {
       AuthService.showToast('Please select an image first', isError: true);
       return;
     }
 
     if (_formKey.currentState!.validate()) {
+      setState(() => _isUploading = true);
+      
+      // Simulate network upload
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (!mounted) return;
       final provider = Provider.of<GalleryProvider>(context, listen: false);
       
       final newPhoto = {
         'id': DateTime.now().millisecondsSinceEpoch,
-        'name': _nameController.text,
-        'image': _selectedImage!.path,
-        'album': _selectedAlbum, // For backwards compatibility if any
-        'albums': [_selectedAlbum], // New requirement: list of albums
-        'date': DateTime.now(),
+        'name': _titleController.text,
+        'image': _imageFile!.path,
+        'album': _selectedAlbums.isNotEmpty ? _selectedAlbums.first : '',
+        'albums': List<String>.from(_selectedAlbums),
+        'date': _selectedDate,
         'isLocal': true,
         'isFavorite': false,
-        'caption': _captionController.text,
         'tags': _tagsController.text,
+        'caption': _captionController.text,
         'captions': _captionController.text.isNotEmpty ? [_captionController.text] : [],
+        'objects': _objectsController.text,
+        'categories': _categoriesController.text,
         'comments': [],
         'allowComments': true,
       };
 
       try {
         provider.addPhoto(newPhoto);
-        AuthService.showToast('Image uploaded successfully!');
+        AuthService.showToast('Image uploaded successfully');
         Navigator.pop(context);
       } catch (e) {
-        AuthService.showToast('Upload failed: $e', isError: true);
+        AuthService.showToast('Failed to upload image', isError: true);
+      } finally {
+        if (mounted) setState(() => _isUploading = false);
       }
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final provider = Provider.of<GalleryProvider>(context);
-
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: const Text('UPLOAD IMAGE'),
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                : [theme.scaffoldBackgroundColor, theme.scaffoldBackgroundColor.withAlpha(200)],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Image Preview Section
-                  Center(
-                    child: Pressable(
-                      onTap: () => _showPickerOptions(),
-                      child: Container(
-                        height: 250,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(5),
-                          borderRadius: BorderRadius.circular(32),
-                          border: Border.all(color: theme.primaryColor.withAlpha(50), width: 2),
-                        ),
-                        child: _selectedImage == null
-                            ? Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.add_photo_alternate_outlined, size: 64, color: theme.primaryColor),
-                                  const SizedBox(height: 12),
-                                  Text('Tap to select or capture', style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold)),
-                                ],
-                              )
-                            : ClipRRect(
-                                borderRadius: BorderRadius.circular(30),
-                                child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                              ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Fields Section
-                  const Text('Mandatory Information', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1, color: Colors.grey)),
-                  const SizedBox(height: 16),
-                  
-                  GlassContainer(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        CustomTextField(
-                          controller: _nameController,
-                          label: 'Image Name *',
-                          hint: 'Enter image title',
-                          icon: Icons.title_rounded,
-                          validator: (v) => v!.isEmpty ? 'Image name is required' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Album Selection
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.only(left: 4, bottom: 8),
-                              child: Text('Album *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                            ),
-                            Wrap(
-                              spacing: 8,
-                              children: [
-                                ChoiceChip(
-                                  label: const Text('Default'),
-                                  selected: _selectedAlbum == 'Default',
-                                  onSelected: (v) => setState(() => _selectedAlbum = 'Default'),
-                                ),
-                                ...provider.userAlbums.map((a) => ChoiceChip(
-                                  label: Text(a),
-                                  selected: _selectedAlbum == a,
-                                  onSelected: (v) => setState(() => _selectedAlbum = a),
-                                )),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  const Text('Additional Details', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1, color: Colors.grey)),
-                  const SizedBox(height: 16),
-
-                  GlassContainer(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        CustomTextField(
-                          controller: _captionController,
-                          label: 'Caption',
-                          hint: 'Write a description...',
-                          icon: Icons.notes_rounded,
-                        ),
-                        const SizedBox(height: 16),
-                        CustomTextField(
-                          controller: _tagsController,
-                          label: 'Tags',
-                          hint: 'e.g. travel, nature, friends',
-                          icon: Icons.tag_rounded,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-                  
-                  Pressable(
-                    onTap: _upload,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      decoration: BoxDecoration(
-                        color: theme.primaryColor,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(color: theme.primaryColor.withAlpha(100), blurRadius: 15, offset: const Offset(0, 5)),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Text(
-                          'Upload to Cloud',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 100),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   void _showPickerOptions() {
@@ -260,10 +126,13 @@ class _UploadPageState extends State<UploadPage> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => GlassContainer(
-        borderRadius: 32,
+        borderRadius: AppTheme.radiusXl,
+        padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingXl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text('Select Source', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
+            const SizedBox(height: AppTheme.spacingLg),
             ListTile(
               leading: const Icon(Icons.photo_library_rounded, color: Colors.white),
               title: const Text('Open Gallery', style: TextStyle(color: Colors.white)),
@@ -274,8 +143,167 @@ class _UploadPageState extends State<UploadPage> {
               title: const Text('Take Photo', style: TextStyle(color: Colors.white)),
               onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppTheme.spacingLg),
           ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final galleryProvider = Provider.of<GalleryProvider>(context);
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Upload Image'),
+      ),
+      body: Container(
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: theme.brightness == Brightness.dark
+                ? [AppTheme.darkBg, AppTheme.darkSurface]
+                : [AppTheme.lightBg, AppTheme.lightBg.withAlpha(220)],
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppTheme.spacingXl),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Pressable(
+                    onTap: _showPickerOptions,
+                    child: Container(
+                      width: double.infinity,
+                      height: 240,
+                      decoration: BoxDecoration(
+                        color: theme.primaryColor.withAlpha(10),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+                        border: Border.all(color: theme.primaryColor.withAlpha(20), width: 2),
+                      ),
+                      child: _imageFile != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(AppTheme.radiusLg - 2),
+                              child: Image.file(_imageFile!, fit: BoxFit.cover),
+                            )
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_a_photo_rounded, size: 48, color: theme.primaryColor.withAlpha(150)),
+                                const SizedBox(height: AppTheme.spacingMd),
+                                Text('Select or Capture', style: theme.textTheme.titleLarge?.copyWith(color: theme.primaryColor.withAlpha(150))),
+                              ],
+                            ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacing2Xl),
+
+                CustomTextField(
+                  controller: _titleController,
+                  label: 'Title *',
+                  hint: 'Memory title',
+                  icon: Icons.title_rounded,
+                  validator: (value) => (value == null || value.isEmpty) ? 'Title is required' : null,
+                ),
+                const SizedBox(height: AppTheme.spacingXl),
+
+                Text('Associated Albums', style: theme.textTheme.titleLarge),
+                const SizedBox(height: AppTheme.spacingMd),
+                if (galleryProvider.userAlbums.isEmpty)
+                  Text('No albums created yet', style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor))
+                else
+                  Wrap(
+                    spacing: AppTheme.spacingSm,
+                    runSpacing: AppTheme.spacingSm,
+                    children: galleryProvider.userAlbums.map((album) {
+                      final isSelected = _selectedAlbums.contains(album);
+                      return FilterChip(
+                        label: Text(album),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            if (selected) {
+                              _selectedAlbums.add(album);
+                            } else {
+                              _selectedAlbums.remove(album);
+                            }
+                          });
+                        },
+                        selectedColor: theme.primaryColor.withAlpha(30),
+                        checkmarkColor: theme.primaryColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSm)),
+                        side: BorderSide.none,
+                      );
+                    }).toList(),
+                  ),
+                const SizedBox(height: AppTheme.spacingXl),
+
+                InkWell(
+                  onTap: _selectDate,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  child: InputDecorator(
+                    decoration: InputDecoration(
+                      labelText: 'Date *',
+                      prefixIcon: const Icon(Icons.calendar_today_rounded),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
+                    ),
+                    child: Text('${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}'),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingXl),
+
+                CustomTextField(
+                  controller: _tagsController,
+                  label: 'Tags',
+                  hint: 'e.g. nature, family',
+                  icon: Icons.tag_rounded,
+                ),
+                const SizedBox(height: AppTheme.spacingXl),
+
+                CustomTextField(
+                  controller: _captionController,
+                  label: 'Caption',
+                  hint: 'Describe the moment...',
+                  icon: Icons.description_rounded,
+                  maxLines: 3,
+                ),
+                const SizedBox(height: AppTheme.spacingXl),
+
+                CustomTextField(
+                  controller: _objectsController,
+                  label: 'Objects / Individuals',
+                  hint: 'Who or what is in the photo?',
+                  icon: Icons.category_rounded,
+                ),
+                const SizedBox(height: AppTheme.spacingXl),
+
+                CustomTextField(
+                  controller: _categoriesController,
+                  label: 'Categories',
+                  hint: 'e.g. Travel, Work',
+                  icon: Icons.label_important_rounded,
+                ),
+                const SizedBox(height: AppTheme.spacing3Xl),
+
+                ElevatedButton(
+                  onPressed: _isUploading ? null : _submitUpload,
+                  child: _isUploading 
+                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                    : const Text('UPLOAD TO GALLERY'),
+                ),
+                const SizedBox(height: 100),
+              ],
+            ),
+          ),
         ),
       ),
     );

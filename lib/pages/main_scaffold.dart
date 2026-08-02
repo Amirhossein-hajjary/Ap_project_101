@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:ui';
 import 'gallery_page.dart';
-import 'albums_overview_page.dart';
+import 'albums_page.dart';
 import 'search_page.dart';
 import 'profile_page.dart';
 import '../providers/gallery_provider.dart';
 import '../widgets/pressable.dart';
+import '../themes/app_theme.dart';
 
 class MainScaffold extends StatefulWidget {
   const MainScaffold({super.key});
@@ -26,16 +27,16 @@ class _MainScaffoldState extends State<MainScaffold> {
 
     final List<Widget> pages = [
       const GalleryPage(),
-      const AlbumsOverviewPage(),
+      const AlbumsPage(),
       SearchPage(
         allPhotos: galleryProvider.allPhotos,
         userAlbums: galleryProvider.userAlbums,
         onDelete: galleryProvider.deletePhoto,
-        onMove: (id, newAlbum) => galleryProvider.addPhotoToAlbum(id, newAlbum),
+        onUpdateAlbums: galleryProvider.updatePhotoAlbums,
       ),
       ProfilePage(
         totalPhotos: galleryProvider.allPhotos.length,
-        totalAlbums: galleryProvider.userAlbums.length,
+        totalAlbums: galleryProvider.displayAlbums.length,
       ),
     ];
 
@@ -46,29 +47,29 @@ class _MainScaffoldState extends State<MainScaffold> {
         children: pages,
       ),
       bottomNavigationBar: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 30),
-        height: 70,
+        margin: const EdgeInsets.fromLTRB(AppTheme.spacingXl, 0, AppTheme.spacingXl, AppTheme.spacing2Xl),
+        height: 72,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(35),
+          borderRadius: BorderRadius.circular(AppTheme.radiusFull),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(isDark ? 100 : 30),
+              color: Colors.black.withAlpha(isDark ? 80 : 20),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(35),
+          borderRadius: BorderRadius.circular(AppTheme.radiusFull),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
             child: Container(
-              color: (isDark ? const Color(0xFF1E293B) : Colors.white).withAlpha(180),
+              color: (isDark ? const Color(0xFF0F172A) : Colors.white).withAlpha(180),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildNavItem(0, Icons.grid_view_rounded, 'Home'),
-                  _buildNavItem(1, Icons.folder_copy_rounded, 'Albums'),
+                  _buildNavItem(0, Icons.grid_view_rounded, 'Gallery'),
+                  _buildNavItem(1, Icons.collections_bookmark_rounded, 'Albums'),
                   _buildNavItem(2, Icons.search_rounded, 'Search'),
                   _buildNavItem(3, Icons.person_outline_rounded, 'Profile'),
                 ],
@@ -88,18 +89,18 @@ class _MainScaffoldState extends State<MainScaffold> {
       onTap: () => setState(() => _currentIndex = index),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg, vertical: AppTheme.spacingSm),
         decoration: BoxDecoration(
-          color: isSelected ? theme.primaryColor.withAlpha(40) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected ? theme.primaryColor.withAlpha(30) : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              color: isSelected ? theme.primaryColor : Colors.grey.shade500,
-              size: 24,
+              color: isSelected ? theme.primaryColor : theme.hintColor.withAlpha(150),
+              size: 26,
             ),
             if (isSelected)
               Container(

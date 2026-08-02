@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../themes/app_theme.dart';
 
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -6,11 +7,10 @@ class CustomTextField extends StatelessWidget {
   final String hint;
   final IconData icon;
   final bool obscureText;
-  final TextInputType keyboardType;
-  final String? Function(String?)? validator;
   final Widget? suffixIcon;
-  final ValueChanged<String>? onChanged;
-  final TextInputAction textInputAction;
+  final String? Function(String?)? validator;
+  final Function(String)? onChanged;
+  final int maxLines;
 
   const CustomTextField({
     super.key,
@@ -19,72 +19,60 @@ class CustomTextField extends StatelessWidget {
     required this.hint,
     required this.icon,
     this.obscureText = false,
-    this.keyboardType = TextInputType.text,
-    this.validator,
     this.suffixIcon,
+    this.validator,
     this.onChanged,
-    this.textInputAction = TextInputAction.next,
+    this.maxLines = 1,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          padding: const EdgeInsets.only(left: AppTheme.spacingSm, bottom: AppTheme.spacingSm),
           child: Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white70 : Colors.black87,
-            ),
+            label, 
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            )
           ),
         ),
         TextFormField(
           controller: controller,
           obscureText: obscureText,
-          keyboardType: keyboardType,
-          validator: validator,
           onChanged: onChanged,
-          textInputAction: textInputAction,
-          style: theme.textTheme.bodyLarge,
+          maxLines: maxLines,
+          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600),
+          validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle:
-                TextStyle(color: isDark ? Colors.white30 : Colors.black38),
-            prefixIcon: Icon(icon, color: theme.primaryColor, size: 20),
+            hintStyle: TextStyle(color: Colors.white.withAlpha(120), fontSize: 14),
+            prefixIcon: Icon(icon, color: Colors.white70, size: 20),
             suffixIcon: suffixIcon,
             filled: true,
-            fillColor: isDark
-                ? Colors.white.withAlpha(10)
-                : Colors.black.withAlpha(5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
-            ),
+            fillColor: Colors.white.withAlpha(15),
+            contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingLg, vertical: AppTheme.spacingLg),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Colors.transparent),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              borderSide: BorderSide(color: Colors.white.withAlpha(30)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide:
-                  BorderSide(color: theme.primaryColor.withAlpha(120), width: 2),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              borderSide: BorderSide(color: Colors.white.withAlpha(80), width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              borderSide: BorderSide(color: theme.colorScheme.error.withAlpha(150)),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              borderSide: BorderSide(color: theme.colorScheme.error),
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
         ),
       ],

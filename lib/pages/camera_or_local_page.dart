@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../themes/app_theme.dart';
+import '../widgets/glass_container.dart';
 
-/// A simple page that lets the user choose between camera and local gallery.
-/// Returns an [XFile] or null via [Navigator.pop].
 class CameraOrLocalPage extends StatelessWidget {
   const CameraOrLocalPage({super.key});
 
@@ -26,48 +26,69 @@ class CameraOrLocalPage extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(title: const Text('Add Photo')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add_a_photo_outlined,
-                  size: 72, color: theme.primaryColor),
-              const SizedBox(height: 24),
-              const Text(
-                'How would you like to add a photo?',
-                style: TextStyle(fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.camera_alt_outlined),
-                  label: const Text('Take a Photo'),
-                  onPressed: () => _pick(context, ImageSource.camera),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.photo_library_outlined),
-                  label: const Text('Choose from Gallery'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.primaryColor,
-                    side: BorderSide(color: theme.primaryColor),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: theme.brightness == Brightness.dark
+                ? [AppTheme.darkBg, AppTheme.darkSurface]
+                : [AppTheme.lightBg, AppTheme.lightBg.withAlpha(220)],
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppTheme.spacingXl),
+            child: GlassContainer(
+              borderRadius: AppTheme.radiusXl,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppTheme.spacing2Xl),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withAlpha(10),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.add_a_photo_rounded, size: 64, color: theme.primaryColor),
                   ),
-                  onPressed: () => _pick(context, ImageSource.gallery),
-                ),
+                  const SizedBox(height: AppTheme.spacingXl),
+                  Text(
+                    'Capture or Choose',
+                    style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppTheme.spacingSm),
+                  Text(
+                    'Pick a source to add a new memory',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppTheme.spacing3Xl),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.camera_alt_rounded),
+                    label: const Text('TAKE A PHOTO'),
+                    onPressed: () => _pick(context, ImageSource.camera),
+                  ),
+                  const SizedBox(height: AppTheme.spacingLg),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.photo_library_rounded),
+                    label: const Text('CHOOSE FROM GALLERY'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.primaryColor,
+                      minimumSize: const Size(double.infinity, 56),
+                      side: BorderSide(color: theme.primaryColor.withAlpha(100)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
+                    ),
+                    onPressed: () => _pick(context, ImageSource.gallery),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

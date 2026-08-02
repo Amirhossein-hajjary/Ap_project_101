@@ -56,6 +56,21 @@ class GalleryProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void updatePhotoAlbums(int id, List<String> albums) {
+    final index = _allPhotos.indexWhere((p) => p['id'] == id);
+    if (index != -1) {
+      _allPhotos[index]['albums'] = List<String>.from(albums);
+      notifyListeners();
+    }
+  }
+
+  void bulkMove(List<int> ids, String newAlbum) {
+    for (var id in ids) {
+      addPhotoToAlbum(id, newAlbum);
+    }
+    notifyListeners();
+  }
+
   void addPhotoToAlbum(int id, String albumName) {
     final index = _allPhotos.indexWhere((p) => p['id'] == id);
     if (index != -1) {

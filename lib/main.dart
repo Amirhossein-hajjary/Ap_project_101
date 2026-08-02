@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'pages/register_page.dart';
-import 'pages/gallery_page.dart';
 import 'themes/app_theme.dart';
 import 'themes/theme_provider.dart';
 import 'services/auth_service.dart';
 
 import 'providers/gallery_provider.dart';
+import 'providers/auth_provider.dart';
 import 'pages/main_scaffold.dart';
 
 
@@ -27,6 +27,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => GalleryProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
       child: MyApp(isLoggedIn: loggedIn),
     ),
