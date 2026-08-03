@@ -43,3 +43,9 @@ app.*.map.json
 /flutter_app/android/app/debug
 /flutter_app/android/app/profile
 /flutter_app/android/app/release
+# Java Backend
+java_backend/target/
+java_backend/.idea/
+java_backend/*.iml
+java_backend/Database/*.json
+java_backend/images/*.jpg
