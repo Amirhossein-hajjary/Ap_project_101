@@ -36,7 +36,7 @@ public class ClientHandler implements Runnable {
                 out.println(jsonResponse);
             }
         } catch (IOException e) {
-            System.out.println("ارتباط با کاربر قطع شد: " + e.getMessage());
+            System.out.println("Lost connection" + e.getMessage());
         } finally {
             try {
                 socket.close();
@@ -51,11 +51,11 @@ public class ClientHandler implements Runnable {
         try {
             request = gson.fromJson(rawJson, Request.class);
         } catch (JsonSyntaxException e) {
-            return Response.error(400, "فرمت درخواست نامعتبر است");
+            return Response.error(400, "unvalid request format");
         }
 
         if (request == null || request.getRoute() == null) {
-            return Response.error(400, "فیلد route الزامی است");
+            return Response.error(400, "you have to fill the rout");
         }
 
         String route = request.getRoute();
@@ -75,7 +75,7 @@ public class ClientHandler implements Runnable {
         if (route.startsWith("/album/") || route.startsWith("/gallery/")) {
             models.User user = userDatabase.findByUsername(request.getUsername());
             if (user == null) {
-                return Response.error(401, "ابتدا باید وارد شوید");
+                return Response.error(401, "You should enter first");
             }
             int userId = user.getId();
 
@@ -96,6 +96,6 @@ public class ClientHandler implements Runnable {
             }
         }
 
-        return Response.error(404, "مسیر یافت نشد: " + route);
+        return Response.error(404, "Couldn't find rout" + route);
     }
 }

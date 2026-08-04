@@ -9,11 +9,11 @@ public class Server {
 
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            System.out.println("سرور روی پورت " + PORT + " در حال اجراست...");
+            System.out.println("Server on port: " + PORT + " is running.");
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("کاربر جدید متصل شد: " + clientSocket.getInetAddress());
+                System.out.println("New user connected" + clientSocket.getInetAddress());
 
                 Thread thread = new Thread(new ClientHandler(clientSocket));
                 thread.start();

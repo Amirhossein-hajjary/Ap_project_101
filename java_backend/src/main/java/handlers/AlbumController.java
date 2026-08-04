@@ -26,28 +26,28 @@ public class AlbumController {
         Album album = userDatabase.createAlbum(userId, name);
 
         if (album == null) {
-            return Response.error(404, "کاربر یافت نشد");
+            return Response.error(404, "couldnt find album");
         }
 
-        return Response.ok("آلبوم با موفقیت ساخته شد", album);
+        return Response.ok("created album", album);
     }
 
     public Response listAlbums(int userId) {
         User user = userDatabase.findById(userId);
         if (user == null) {
-            return Response.error(404, "کاربر یافت نشد");
+            return Response.error(404, "couldnt find the user");
         }
-        return Response.ok("لیست آلبوم‌ها", user.getAlbums());
+        return Response.ok("albums", user.getAlbums());
     }
 
     public Response uploadImage(int userId, JsonObject payload) {
         if (payload == null || !payload.has("base64Data")) {
-            return Response.error(400, "فیلد base64Data الزامی است");
+            return Response.error(400, "base64 is requierd");
         }
 
         User user = userDatabase.findById(userId);
         if (user == null) {
-            return Response.error(404, "کاربر یافت نشد");
+            return Response.error(404, "coudn't find the user");
         }
 
         int albumId;
@@ -64,7 +64,7 @@ public class AlbumController {
         Image savedImage = userDatabase.addImageToAlbum(userId, albumId, image);
 
         if (savedImage == null) {
-            return Response.error(404, "آلبوم مقصد یافت نشد");
+            return Response.error(404, "couldn't find the album");
         }
 
         try {
@@ -73,26 +73,26 @@ public class AlbumController {
             userDatabase.setImageSaveAddress(userId, savedImage.getId(), path);
             savedImage.setSaveAddress(path);
         } catch (IOException e) {
-            return Response.error(500, "خطا در ذخیره‌سازی فایل تصویر");
+            return Response.error(500, "couldn't store the image");
         }
 
-        return Response.ok("عکس با موفقیت آپلود شد", savedImage);
+        return Response.ok("uploded successfuly", savedImage);
     }
 
     public Response getImage(int userId, JsonObject payload) {
         if (payload == null || !payload.has("imageId")) {
-            return Response.error(400, "فیلد imageId الزامی است");
+            return Response.error(400, "image id is requierd");
         }
 
         int imageId = payload.get("imageId").getAsInt();
         Image image = userDatabase.findImageById(userId, imageId);
 
         if (image == null) {
-            return Response.error(404, "عکس یافت نشد");
+            return Response.error(404, "couldn't find imageد");
         }
 
         if (image.getSaveAddress() == null) {
-            return Response.error(500, "فایل این عکس روی سرور موجود نیست");
+            return Response.error(500, "not available on database");
         }
 
         try {
@@ -101,9 +101,9 @@ public class AlbumController {
             result.addProperty("imageId", image.getId());
             result.addProperty("caption", image.getCaption());
             result.addProperty("base64Data", base64);
-            return Response.ok("عکس با موفقیت دریافت شد", result);
+            return Response.ok("image recieved", result);
         } catch (IOException e) {
-            return Response.error(500, "خطا در خواندن فایل تصویر");
+            return Response.error(500, "couldn't find image");
         }
     }
 }

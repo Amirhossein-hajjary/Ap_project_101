@@ -4,13 +4,12 @@ public class Admin {
     private String userName;
     private String passWord;
     private int adminId;
-    //--------------------------constructor
     public Admin(String userName, String passWord, int adminId) {
         this.userName = userName;
         this.passWord = passWord;
         this.adminId = adminId;
     }
-    //---------------------------getters and setters
+
     public String getUserName() {
         return userName;
     }
@@ -34,7 +33,7 @@ public class Admin {
     public void setAdminId(int adminId) {
         this.adminId = adminId;
     }
-    //------------------------------admin methods
+
     public int albumCount(User user){
         int count = user.getAlbums().size();
         return count;

@@ -14,7 +14,7 @@ public class GalleryController {
     public Response listAllImages(int userId) {
         User user = userDatabase.findById(userId);
         if (user == null) {
-            return Response.error(404, "کاربر یافت نشد");
+            return Response.error(404, "Couldn't find user");
         }
 
         ArrayList<Image> allImages = new ArrayList<>();
@@ -22,6 +22,6 @@ public class GalleryController {
             allImages.addAll(album.getImages());
         }
 
-        return Response.ok("لیست کل عکس‌ها", allImages);
+        return Response.ok("Images list", allImages);
     }
 }
