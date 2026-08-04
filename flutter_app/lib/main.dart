@@ -9,6 +9,7 @@ import 'services/auth_service.dart';
 import 'providers/gallery_provider.dart';
 import 'providers/auth_provider.dart';
 import 'pages/main_scaffold.dart';
+import 'pages/test_connection_page.dart';
 
 
 void main() async {
@@ -48,7 +49,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeProvider.themeMode,
-      home: isLoggedIn ? const MainScaffold() : const RegisterPage(),
+      home: const TestConnectionPage(),
       debugShowCheckedModeBanner: false,
     );
   }
