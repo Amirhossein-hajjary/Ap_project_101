@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../themes/app_theme.dart';
 import 'login_page.dart';
 import 'main_scaffold.dart';
+import '../services/socket_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -43,13 +44,33 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
-      AuthService.showToast('Account created successfully');
-      await AuthService.setLoggedIn(true);
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScaffold()),
+      try {
+        final response = await SocketService().sendRequest(
+          method: 'POST',
+          route: '/user/signup/',
+          payload: {
+            'userName': _usernameController.text,
+            'password': _passwordController.text,
+          },
         );
+
+        final int statusCode = response['statusCode'];
+
+        if (statusCode == 200) {
+          AuthService.showToast('Account created successfully');
+          await AuthService.setLoggedIn(true);
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const MainScaffold()),
+            );
+          }
+        } else {
+          final String message = response['message'] ?? 'Registration failed';
+          AuthService.showToast(message, isError: true);
+        }
+      } catch (e) {
+        AuthService.showToast('Connection error: $e', isError: true);
       }
     } else {
       AuthService.showToast('Please correct the errors', isError: true);

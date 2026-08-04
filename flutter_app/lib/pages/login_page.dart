@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../themes/app_theme.dart';
 import 'register_page.dart';
 import 'main_scaffold.dart';
+import '../services/socket_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -55,16 +56,34 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
-      AuthService.showToast('Login Successful');
-      await AuthService.setLoggedIn(true);
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScaffold()),
+      try {
+        final response = await SocketService().sendRequest(
+          method: 'POST',
+          route: '/user/login/',
+          payload: {
+            'userName': _usernameController.text,
+            'password': _passwordController.text,
+          },
         );
+
+        final int statusCode = response['statusCode'];
+
+        if (statusCode == 200) {
+          AuthService.showToast('Login Successful');
+          await AuthService.setLoggedIn(true);
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const MainScaffold()),
+            );
+          }
+        } else {
+          final String message = response['message'] ?? 'Invalid credentials';
+          AuthService.showToast(message, isError: true);
+        }
+      } catch (e) {
+        AuthService.showToast('Connection error: $e', isError: true);
       }
-    } else {
-      AuthService.showToast('Invalid credentials', isError: true);
     }
   }
 
