@@ -40,10 +40,6 @@ public class UserDatabase {
         }
     }
 
-    public synchronized ArrayList<User> getAllUsers() {
-        return load().users;
-    }
-
     public synchronized User findByUsername(String username) {
         for (User u : load().users) {
             if (u.getUserName().equals(username)) return u;
@@ -68,8 +64,9 @@ public class UserDatabase {
         data.nextUserId++;
 
         if (!newUser.getAlbums().isEmpty()) {
-            newUser.getAlbums().get(0).setId(data.nextAlbumId);
-            newUser.getAlbums().get(0).setOwnerId(newUser.getId());
+            Album defaultAlbum = newUser.getAlbums().get(0);
+            defaultAlbum.setId(data.nextAlbumId);
+            defaultAlbum.setOwnerId(newUser.getId());
             data.nextAlbumId++;
         }
 
@@ -80,10 +77,7 @@ public class UserDatabase {
 
     public synchronized Album createAlbum(int ownerId, String albumName) {
         Wrapper data = load();
-        User owner = null;
-        for (User u : data.users) {
-            if (u.getId() == ownerId) owner = u;
-        }
+        User owner = findUserInWrapper(data, ownerId);
         if (owner == null) return null;
 
         Album album = new Album(albumName);
@@ -96,72 +90,94 @@ public class UserDatabase {
         return album;
     }
 
-    public synchronized Image addImageToAlbum(int ownerId, int albumId, Image image) {
+    public synchronized Image uploadImage(int ownerId, Image image, ArrayList<Integer> albumIds) {
         Wrapper data = load();
-        User owner = null;
-        for (User u : data.users) {
-            if (u.getId() == ownerId) owner = u;
-        }
+        User owner = findUserInWrapper(data, ownerId);
         if (owner == null) return null;
-
-        Album targetAlbum = null;
-        for (Album a : owner.getAlbums()) {
-            if (a.getId() == albumId) targetAlbum = a;
-        }
-        if (targetAlbum == null) return null;
 
         image.setId(data.nextImageId);
         data.nextImageId++;
         image.setOwnerId(ownerId);
-        image.setAlbumId(albumId);
 
-        targetAlbum.addImage(image);
+        for (int albumId : albumIds) {
+            Album album = findAlbumInUser(owner, albumId);
+            if (album != null) {
+                image.addAlbumId(albumId);
+                album.addImageId(image.getId());
+            }
+        }
+
+        owner.addImage(image);
         save(data);
         return image;
     }
 
-    public synchronized boolean updateUser(User updatedUser) {
-        Wrapper data = load();
-        for (int i = 0; i < data.users.size(); i++) {
-            if (data.users.get(i).getId() == updatedUser.getId()) {
-                data.users.set(i, updatedUser);
-                save(data);
-                return true;
-            }
-        }
-        return false;
-    }
-
     public synchronized boolean setImageSaveAddress(int ownerId, int imageId, String path) {
         Wrapper data = load();
-        for (User u : data.users) {
-            if (u.getId() == ownerId) {
-                for (Album a : u.getAlbums()) {
-                    for (Image img : a.getImages()) {
-                        if (img.getId() == imageId) {
-                            img.setSaveAddress(path);
-                            save(data);
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        return false;
+        User owner = findUserInWrapper(data, ownerId);
+        if (owner == null) return false;
+
+        Image image = findImageInUser(owner, imageId);
+        if (image == null) return false;
+
+        image.setSaveAddress(path);
+        save(data);
+        return true;
     }
 
     public synchronized Image findImageById(int ownerId, int imageId) {
+        User owner = findById(ownerId);
+        if (owner == null) return null;
+        return findImageInUser(owner, imageId);
+    }
+
+    public synchronized boolean addImageToAlbum(int ownerId, int imageId, int albumId) {
         Wrapper data = load();
+        User owner = findUserInWrapper(data, ownerId);
+        if (owner == null) return false;
+
+        Image image = findImageInUser(owner, imageId);
+        Album album = findAlbumInUser(owner, albumId);
+        if (image == null || album == null) return false;
+
+        image.addAlbumId(albumId);
+        album.addImageId(imageId);
+        save(data);
+        return true;
+    }
+
+    public synchronized boolean removeImageFromAlbum(int ownerId, int imageId, int albumId) {
+        Wrapper data = load();
+        User owner = findUserInWrapper(data, ownerId);
+        if (owner == null) return false;
+
+        Image image = findImageInUser(owner, imageId);
+        Album album = findAlbumInUser(owner, albumId);
+        if (image == null || album == null) return false;
+
+        image.removeAlbumId(albumId);
+        album.removeImageId(imageId);
+        save(data);
+        return true;
+    }
+
+    private User findUserInWrapper(Wrapper data, int userId) {
         for (User u : data.users) {
-            if (u.getId() == ownerId) {
-                for (Album a : u.getAlbums()) {
-                    for (Image img : a.getImages()) {
-                        if (img.getId() == imageId) {
-                            return img;
-                        }
-                    }
-                }
-            }
+            if (u.getId() == userId) return u;
+        }
+        return null;
+    }
+
+    private Album findAlbumInUser(User user, int albumId) {
+        for (Album a : user.getAlbums()) {
+            if (a.getId() == albumId) return a;
+        }
+        return null;
+    }
+
+    private Image findImageInUser(User user, int imageId) {
+        for (Image img : user.getImages()) {
+            if (img.getId() == imageId) return img;
         }
         return null;
     }

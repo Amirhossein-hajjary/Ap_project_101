@@ -12,7 +12,7 @@ public class Image {
     private String saveAddress;
     private String caption;
     private int ownerId;
-    private int albumId;
+    private ArrayList<Integer> albumIds = new ArrayList<>();
     private ArrayList<String> tags = new ArrayList<>();
     private boolean liked = false;
     private ArrayList<Comment> comments = new ArrayList<>();
@@ -60,16 +60,40 @@ public class Image {
         this.ownerId = ownerId;
     }
 
-    public int getAlbumId() {
-        return albumId;
+    public ArrayList<Integer> getAlbumIds() {
+        return albumIds;
     }
 
-    public void setAlbumId(int albumId) {
-        this.albumId = albumId;
+    public void addAlbumId(int albumId) {
+        if (!albumIds.contains(albumId)) albumIds.add(albumId);
+    }
+
+    public void removeAlbumId(int albumId) {
+        albumIds.remove(Integer.valueOf(albumId));
     }
 
     public ArrayList<String> getTags() {
         return tags;
+    }
+
+    public boolean isLiked() {
+        return liked;
+    }
+
+    public void setLiked(boolean liked) {
+        this.liked = liked;
+    }
+
+    public ArrayList<Comment> getComments() {
+        return comments;
+    }
+
+    public boolean isCommentable() {
+        return commentable;
+    }
+
+    public void setCommentable(boolean commentable) {
+        this.commentable = commentable;
     }
 
     public String getDate() {

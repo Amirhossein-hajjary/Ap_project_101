@@ -1,5 +1,7 @@
 package handlers;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import database.ImageStorage;
 import database.UserDatabase;
@@ -7,8 +9,6 @@ import models.Album;
 import models.Image;
 import models.User;
 import server.Response;
-import database.UserDatabase;
-import database.ImageStorage;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,53 +19,60 @@ public class AlbumController {
 
     public Response createAlbum(int userId, JsonObject payload) {
         if (payload == null || !payload.has("name")) {
-            return Response.error(400, "Name is requierd");
+            return Response.error(400, "فیلد name الزامی است");
         }
 
         String name = payload.get("name").getAsString();
         Album album = userDatabase.createAlbum(userId, name);
 
         if (album == null) {
-            return Response.error(404, "couldnt find album");
+            return Response.error(404, "کاربر یافت نشد");
         }
 
-        return Response.ok("created album", album);
+        return Response.ok("آلبوم با موفقیت ساخته شد", album);
     }
 
     public Response listAlbums(int userId) {
         User user = userDatabase.findById(userId);
         if (user == null) {
-            return Response.error(404, "couldnt find the user");
+            return Response.error(404, "کاربر یافت نشد");
         }
-        return Response.ok("albums", user.getAlbums());
+        return Response.ok("لیست آلبوم‌ها", user.getAlbums());
     }
 
     public Response uploadImage(int userId, JsonObject payload) {
         if (payload == null || !payload.has("base64Data")) {
-            return Response.error(400, "base64 is requierd");
+            return Response.error(400, "فیلد base64Data الزامی است");
         }
 
         User user = userDatabase.findById(userId);
         if (user == null) {
-            return Response.error(404, "coudn't find the user");
+            return Response.error(404, "کاربر یافت نشد");
         }
 
-        int albumId;
-        if (payload.has("albumId") && !payload.get("albumId").isJsonNull()) {
-            albumId = payload.get("albumId").getAsInt();
-        } else {
-            albumId = user.getAlbums().get(0).getId();
+        ArrayList<Integer> albumIds = new ArrayList<>();
+        if (payload.has("albumIds") && payload.get("albumIds").isJsonArray()) {
+            JsonArray arr = payload.getAsJsonArray("albumIds");
+            for (JsonElement el : arr) {
+                albumIds.add(el.getAsInt());
+            }
+        }
+        if (albumIds.isEmpty()) {
+            albumIds.add(user.getAlbums().get(0).getId());
         }
 
         String caption = payload.has("caption") ? payload.get("caption").getAsString() : "";
         String name = payload.has("name") ? payload.get("name").getAsString() : "untitled";
 
-        Image image = new Image(name, caption, new ArrayList<>());
-        Image savedImage = userDatabase.addImageToAlbum(userId, albumId, image);
-
-        if (savedImage == null) {
-            return Response.error(404, "couldn't find the album");
+        ArrayList<String> tags = new ArrayList<>();
+        if (payload.has("tags") && payload.get("tags").isJsonArray()) {
+            for (JsonElement el : payload.getAsJsonArray("tags")) {
+                tags.add(el.getAsString());
+            }
         }
+
+        Image image = new Image(name, caption, tags);
+        Image savedImage = userDatabase.uploadImage(userId, image, albumIds);
 
         try {
             String base64Data = payload.get("base64Data").getAsString();
@@ -73,26 +80,25 @@ public class AlbumController {
             userDatabase.setImageSaveAddress(userId, savedImage.getId(), path);
             savedImage.setSaveAddress(path);
         } catch (IOException e) {
-            return Response.error(500, "couldn't store the image");
+            return Response.error(500, "خطا در ذخیره‌سازی فایل تصویر");
         }
 
-        return Response.ok("uploded successfuly", savedImage);
+        return Response.ok("عکس با موفقیت آپلود شد", savedImage);
     }
 
     public Response getImage(int userId, JsonObject payload) {
         if (payload == null || !payload.has("imageId")) {
-            return Response.error(400, "image id is requierd");
+            return Response.error(400, "فیلد imageId الزامی است");
         }
 
         int imageId = payload.get("imageId").getAsInt();
         Image image = userDatabase.findImageById(userId, imageId);
 
         if (image == null) {
-            return Response.error(404, "couldn't find imageد");
+            return Response.error(404, "عکس یافت نشد");
         }
-
         if (image.getSaveAddress() == null) {
-            return Response.error(500, "not available on database");
+            return Response.error(500, "فایل این عکس روی سرور موجود نیست");
         }
 
         try {
@@ -101,9 +107,33 @@ public class AlbumController {
             result.addProperty("imageId", image.getId());
             result.addProperty("caption", image.getCaption());
             result.addProperty("base64Data", base64);
-            return Response.ok("image recieved", result);
+            return Response.ok("عکس با موفقیت دریافت شد", result);
         } catch (IOException e) {
-            return Response.error(500, "couldn't find image");
+            return Response.error(500, "خطا در خواندن فایل تصویر");
         }
+    }
+
+    public Response addImageToAlbum(int userId, JsonObject payload) {
+        if (payload == null || !payload.has("imageId") || !payload.has("albumId")) {
+            return Response.error(400, "فیلدهای imageId و albumId الزامی است");
+        }
+        int imageId = payload.get("imageId").getAsInt();
+        int albumId = payload.get("albumId").getAsInt();
+
+        boolean success = userDatabase.addImageToAlbum(userId, imageId, albumId);
+        if (!success) return Response.error(404, "عکس یا آلبوم یافت نشد");
+        return Response.ok("عکس به آلبوم اضافه شد", null);
+    }
+
+    public Response removeImageFromAlbum(int userId, JsonObject payload) {
+        if (payload == null || !payload.has("imageId") || !payload.has("albumId")) {
+            return Response.error(400, "فیلدهای imageId و albumId الزامی است");
+        }
+        int imageId = payload.get("imageId").getAsInt();
+        int albumId = payload.get("albumId").getAsInt();
+
+        boolean success = userDatabase.removeImageFromAlbum(userId, imageId, albumId);
+        if (!success) return Response.error(404, "عکس یا آلبوم یافت نشد");
+        return Response.ok("عکس از آلبوم حذف شد", null);
     }
 }

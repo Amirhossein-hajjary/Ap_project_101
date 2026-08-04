@@ -7,7 +7,7 @@ public class Album {
     private int id;
     private String name;
     private int ownerId;
-    private ArrayList<Image> images = new ArrayList<>();
+    private ArrayList<Integer> imageIds = new ArrayList<>();
     private String date;
 
     public Album() {
@@ -18,12 +18,16 @@ public class Album {
         this.date = LocalDateTime.now().toString();
     }
 
-    public void addImage(Image image) {
-        images.add(image);
+    public void addImageId(int imageId) {
+        if (!imageIds.contains(imageId)) imageIds.add(imageId);
     }
 
-    public ArrayList<Image> getImages() {
-        return images;
+    public void removeImageId(int imageId) {
+        imageIds.remove(Integer.valueOf(imageId));
+    }
+
+    public ArrayList<Integer> getImageIds() {
+        return imageIds;
     }
 
     public int getId() {
@@ -36,6 +40,10 @@ public class Album {
 
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public int getOwnerId() {

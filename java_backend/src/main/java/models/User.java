@@ -9,6 +9,7 @@ public class User {
     private String password;
     private String email;
     private ArrayList<Album> albums = new ArrayList<>();
+    private ArrayList<Image> images = new ArrayList<>();
     private boolean banned = false;
 
     public User() {
@@ -38,11 +39,9 @@ public class User {
     }
 
     private boolean isCorrectUserName(String userName) {
-        return userName != null && userName.length() >= 3;
-    }
-
-    public void addImageToDefaultAlbum(Image image) {
-        albums.get(0).addImage(image);
+        final Pattern EMAIL = Pattern.compile("^[\\w.+-]+@[\\w-]+\\.[a-zA-Z]{2,}$");
+        final Pattern PHONE = Pattern.compile("^09\\d{9}$");
+        return userName != null && (EMAIL.matcher(userName).matches() || PHONE.matcher(userName).matches());
     }
 
     public boolean isBanned() {
@@ -87,5 +86,13 @@ public class User {
 
     public void addAlbum(Album album) {
         this.albums.add(album);
+    }
+
+    public ArrayList<Image> getImages() {
+        return images;
+    }
+
+    public void addImage(Image image) {
+        this.images.add(image);
     }
 }
