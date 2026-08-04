@@ -12,7 +12,7 @@ class SocketService {
   final StreamController<Map<String, dynamic>> _responseController =
   StreamController<Map<String, dynamic>>.broadcast();
 
-  static const String serverIp = '192.168.43.236';
+  static const String serverIp = '192.168.142.50';
   static const int serverPort = 5000;
 
   Future<void> connect() async {
