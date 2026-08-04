@@ -49,7 +49,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeProvider.themeMode,
-      home: const TestConnectionPage(),
+      home: isLoggedIn ? const MainScaffold() : const RegisterPage(),
       debugShowCheckedModeBanner: false,
     );
   }
