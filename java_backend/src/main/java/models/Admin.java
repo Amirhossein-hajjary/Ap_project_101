@@ -38,10 +38,7 @@ public class Admin {
         int count = user.getAlbums().size();
         return count;
     }
-    public int imagesCount(User user){
-        int count = user.getAlbums().getFirst().getImages().size();
-        return count;
-    }
+
     public void banUser(User user){
         user.setBanned(true);
     }

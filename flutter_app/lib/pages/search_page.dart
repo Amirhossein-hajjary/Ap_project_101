@@ -34,15 +34,20 @@ class _SearchPageState extends State<SearchPage> {
       if (query.isEmpty) {
         _searchResults = [];
       } else {
+        final q = query.toLowerCase();
         _searchResults = widget.allPhotos.where((p) {
-          final title = (p['name'] as String).toLowerCase();
-          final album = (p['album'] as String).toLowerCase();
-          final tags = (p['tags'] as String? ?? '').toLowerCase();
-          final objects = (p['objects'] as String? ?? '').toLowerCase();
-          return title.contains(query.toLowerCase()) || 
-                 album.contains(query.toLowerCase()) ||
-                 tags.contains(query.toLowerCase()) ||
-                 objects.contains(query.toLowerCase());
+          final title = (p['name'] as String? ?? '').toLowerCase();
+          final caption = (p['caption'] as String? ?? '').toLowerCase();
+          final albums = (p['albums'] as List<dynamic>? ?? [])
+              .join(' ')
+              .toLowerCase();
+          final tags = (p['tags'] as List<dynamic>? ?? [])
+              .join(' ')
+              .toLowerCase();
+          return title.contains(q) ||
+              caption.contains(q) ||
+              albums.contains(q) ||
+              tags.contains(q);
         }).toList();
       }
     });

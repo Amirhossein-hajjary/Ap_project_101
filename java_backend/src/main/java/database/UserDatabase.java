@@ -3,6 +3,7 @@ package database;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import models.Album;
+import models.Comment;
 import models.Image;
 import models.User;
 
@@ -56,6 +57,20 @@ public class UserDatabase {
 
     public synchronized boolean usernameExists(String username) {
         return findByUsername(username) != null;
+    }
+
+    public synchronized ArrayList<User> getAllUsers() {
+        return load().users;
+    }
+
+    public synchronized boolean setUserBanned(int userId, boolean banned) {
+        Wrapper data = load();
+        User user = findUserInWrapper(data, userId);
+        if (user == null) return false;
+
+        user.setBanned(banned);
+        save(data);
+        return true;
     }
 
     public synchronized User registerUser(User newUser) {
@@ -219,6 +234,65 @@ public class UserDatabase {
         if (image == null) return false;
 
         image.setLiked(liked);
+        save(data);
+        return true;
+    }
+
+    public synchronized Image addComment(int ownerId, int imageId, int commenterId, String title, String context) {
+        Wrapper data = load();
+        User owner = findUserInWrapper(data, ownerId);
+        if (owner == null) return null;
+
+        Image image = findImageInUser(owner, imageId);
+        if (image == null) return null;
+        if (!image.isCommentable()) return null;
+
+        Comment comment = new Comment(commenterId, title, context);
+        image.getComments().add(comment);
+        save(data);
+        return image;
+    }
+
+    public synchronized boolean setImageCommentable(int ownerId, int imageId, boolean commentable) {
+        Wrapper data = load();
+        User owner = findUserInWrapper(data, ownerId);
+        if (owner == null) return false;
+
+        Image image = findImageInUser(owner, imageId);
+        if (image == null) return false;
+
+        image.setCommentable(commentable);
+        save(data);
+        return true;
+    }
+
+    public synchronized int changePassword(int userId, String oldPassword, String newPassword) {
+        Wrapper data = load();
+        User user = findUserInWrapper(data, userId);
+        if (user == null) return 1;
+
+        if (!user.getPassword().equals(oldPassword)) return 2;
+        if (!isValidPassword(newPassword, user.getUserName())) return 3;
+
+        user.setPassword(newPassword);
+        save(data);
+        return 0;
+    }
+
+    private boolean isValidPassword(String password, String userName) {
+        if (password == null || password.length() < 8 || password.contains(userName)) return false;
+        boolean hasUpper = password.chars().anyMatch(Character::isUpperCase);
+        boolean hasLower = password.chars().anyMatch(Character::isLowerCase);
+        boolean hasDigit = password.chars().anyMatch(Character::isDigit);
+        return hasUpper && hasLower && hasDigit;
+    }
+
+    public synchronized boolean deleteAccount(int userId) {
+        Wrapper data = load();
+        User user = findUserInWrapper(data, userId);
+        if (user == null) return false;
+
+        data.users.remove(user);
         save(data);
         return true;
     }

@@ -6,6 +6,7 @@ public class Request {
     private String method;
     private String username;
     private String route;
+    private String requestId;
     private JsonObject payload;
 
     public Request() {
@@ -21,6 +22,10 @@ public class Request {
 
     public String getRoute() {
         return route;
+    }
+
+    public String getRequestId() {
+        return requestId;
     }
 
     public JsonObject getPayload() {

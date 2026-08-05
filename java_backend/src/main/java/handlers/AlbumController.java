@@ -178,4 +178,30 @@ public class AlbumController {
         if (!success) return Response.error(404, "عکس یافت نشد");
         return Response.ok("وضعیت پسندیدن تغییر کرد", null);
     }
+
+    public Response addComment(int userId, JsonObject payload) {
+        if (payload == null || !payload.has("imageId") || !payload.has("context")) {
+            return Response.error(400, "فیلدهای imageId و context الزامی است");
+        }
+        int imageId = payload.get("imageId").getAsInt();
+        String context = payload.get("context").getAsString();
+        String title = payload.has("title") ? payload.get("title").getAsString() : "";
+
+        Image updatedImage = userDatabase.addComment(userId, imageId, userId, title, context);
+        if (updatedImage == null) {
+            return Response.error(403, "عکس یافت نشد یا امکان کامنت‌گذاری غیرفعال است");
+        }
+        return Response.ok("کامنت ثبت شد", updatedImage.getComments());
+    }
+
+    public Response setCommentable(int userId, JsonObject payload) {
+        if (payload == null || !payload.has("imageId") || !payload.has("commentable")) {
+            return Response.error(400, "فیلدهای imageId و commentable الزامی است");
+        }
+        int imageId = payload.get("imageId").getAsInt();
+        boolean commentable = payload.get("commentable").getAsBoolean();
+        boolean success = userDatabase.setImageCommentable(userId, imageId, commentable);
+        if (!success) return Response.error(404, "عکس یافت نشد");
+        return Response.ok("وضعیت کامنت‌گذاری تغییر کرد", null);
+    }
 }

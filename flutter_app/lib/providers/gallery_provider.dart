@@ -72,6 +72,11 @@ class GalleryProvider with ChangeNotifier {
             'liked': liked,
             'isFavorite': liked,
             'isLocal': false,
+            'comments': List<Map<String, dynamic>>.from(
+              (map['comments'] as List<dynamic>? ?? [])
+                  .map((c) => Map<String, dynamic>.from(c)),
+            ),
+            'allowComments': map['commentable'] ?? true,
           };
         }).toList();
       }
@@ -328,5 +333,53 @@ class GalleryProvider with ChangeNotifier {
 
   List<Map<String, dynamic>> getPhotosForAlbum(String albumName) {
     return _allPhotos.where((p) => (p['albums'] as List<dynamic>).contains(albumName)).toList();
+  }
+
+  Future<bool> addComment(int imageId, String context, {String title = ''}) async {
+    try {
+      final response = await SocketService().sendRequest(
+        method: 'POST',
+        route: '/image/comment/add/',
+        username: _username,
+        payload: {'imageId': imageId, 'title': title, 'context': context},
+      );
+      debugPrint('پاسخ سرور برای کامنت: $response');
+      if (response['statusCode'] == 200) {
+        final List<dynamic> comments = response['payload'] ?? [];
+        final index = _allPhotos.indexWhere((p) => p['id'] == imageId);
+        if (index != -1) {
+          _allPhotos[index]['comments'] = comments
+              .map((c) => Map<String, dynamic>.from(c))
+              .toList();
+        }
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('خطا در ثبت کامنت: $e');
+    }
+    return false;
+  }
+
+  Future<bool> setCommentable(int imageId, bool commentable) async {
+    try {
+      final response = await SocketService().sendRequest(
+        method: 'POST',
+        route: '/image/commentable/set/',
+        username: _username,
+        payload: {'imageId': imageId, 'commentable': commentable},
+      );
+      if (response['statusCode'] == 200) {
+        final index = _allPhotos.indexWhere((p) => p['id'] == imageId);
+        if (index != -1) {
+          _allPhotos[index]['allowComments'] = commentable;
+        }
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('خطا در تغییر وضعیت کامنت‌گذاری: $e');
+    }
+    return false;
   }
 }

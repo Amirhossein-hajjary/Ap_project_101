@@ -72,13 +72,19 @@ public class ClientHandler implements Runnable {
             return userController.login(request.getPayload());
         }
 
-        if (route.startsWith("/album/") || route.startsWith("/gallery/")) {
+        if (route.startsWith("/album/") || route.startsWith("/gallery/") || route.startsWith("/image/") || route.startsWith("/user/")) {
             models.User user = userDatabase.findByUsername(request.getUsername());
             if (user == null) {
                 return Response.error(401, "You should enter first");
             }
             int userId = user.getId();
 
+            if (route.equals("/user/changePassword/")) {
+                return userController.changePassword(userId, request.getPayload());
+            }
+            if (route.equals("/user/deleteAccount/")) {
+                return userController.deleteAccount(userId);
+            }
             if (route.equals("/album/create/")) {
                 return albumController.createAlbum(userId, request.getPayload());
             }
@@ -108,6 +114,12 @@ public class ClientHandler implements Runnable {
             }
             if (route.equals("/image/like/")) {
                 return albumController.setLiked(userId, request.getPayload());
+            }
+            if (route.equals("/image/comment/add/")) {
+                return albumController.addComment(userId, request.getPayload());
+            }
+            if (route.equals("/image/commentable/set/")) {
+                return albumController.setCommentable(userId, request.getPayload());
             }
             if (route.equals("/gallery/list/")) {
                 return galleryController.listAllImages(userId);

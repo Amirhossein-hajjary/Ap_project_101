@@ -58,4 +58,30 @@ public class UserController {
 
         return Response.ok("Welcome", user);
     }
+
+    public Response changePassword(int userId, JsonObject payload) {
+        if (payload == null || !payload.has("oldPassword") || !payload.has("newPassword")) {
+            return Response.error(400, "فیلدهای oldPassword و newPassword الزامی است");
+        }
+        String oldPassword = payload.get("oldPassword").getAsString();
+        String newPassword = payload.get("newPassword").getAsString();
+
+        int result = userDatabase.changePassword(userId, oldPassword, newPassword);
+        switch (result) {
+            case 0:
+                return Response.ok("رمز عبور با موفقیت تغییر کرد", null);
+            case 2:
+                return Response.error(401, "رمز عبور فعلی اشتباه است");
+            case 3:
+                return Response.error(400, "رمز عبور جدید نامعتبر است (حداقل ۸ کاراکتر، شامل حروف بزرگ، کوچک و عدد، بدون نام کاربری)");
+            default:
+                return Response.error(404, "کاربر یافت نشد");
+        }
+    }
+
+    public Response deleteAccount(int userId) {
+        boolean success = userDatabase.deleteAccount(userId);
+        if (!success) return Response.error(404, "کاربر یافت نشد");
+        return Response.ok("حساب کاربری حذف شد", null);
+    }
 }

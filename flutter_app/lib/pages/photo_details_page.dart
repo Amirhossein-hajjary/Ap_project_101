@@ -78,7 +78,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
     final photo = widget.photos[_currentIndex];
     final provider = Provider.of<GalleryProvider>(context, listen: false);
     final allAvailableAlbums = ['Default', ...provider.userAlbums];
-    
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -98,7 +98,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                     itemBuilder: (context, index) {
                       final albumName = allAvailableAlbums[index];
                       final bool isInAlbum = (photo['albums'] as List).contains(albumName);
-                      
+
                       return CheckboxListTile(
                         title: Text(albumName),
                         value: isInAlbum,
@@ -167,6 +167,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
 
   void _showSocialAndDetails() {
     final photo = widget.photos[_currentIndex];
+    final provider = Provider.of<GalleryProvider>(context, listen: false);
     final TextEditingController commentController = TextEditingController();
     final TextEditingController captionController = TextEditingController();
 
@@ -205,9 +206,14 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                             const Text('Allow Comments', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             Switch(
                               value: photo['allowComments'],
-                              onChanged: (val) {
-                                setModalState(() => photo['allowComments'] = val);
-                                setState(() {});
+                              onChanged: (val) async {
+                                final success = await provider.setCommentable(photo['id'] as int, val);
+                                if (success) {
+                                  setModalState(() => photo['allowComments'] = val);
+                                  setState(() {});
+                                } else {
+                                  AuthService.showToast('خطا در تغییر وضعیت کامنت‌گذاری', isError: true);
+                                }
                               },
                               activeTrackColor: Theme.of(context).primaryColor.withAlpha(150),
                               activeThumbColor: Theme.of(context).primaryColor,
@@ -254,16 +260,22 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                         if (!photo['allowComments'])
                           const Text('Comments are disabled for this image.', style: TextStyle(color: Colors.white38, fontStyle: FontStyle.italic))
                         else ...[
-                          ...(photo['comments'] as List).map((c) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('User', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                                Text(c, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-                              ],
-                            ),
-                          )),
+                          if ((photo['comments'] as List).isEmpty)
+                            const Text('No comments yet.', style: TextStyle(color: Colors.white38, fontStyle: FontStyle.italic)),
+                          ...(photo['comments'] as List).map((c) {
+                            final comment = c as Map<String, dynamic>;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if ((comment['title'] ?? '').toString().isNotEmpty)
+                                    Text(comment['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                  Text(comment['context'] ?? '', style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                                ],
+                              ),
+                            );
+                          }),
                           Row(
                             children: [
                               Expanded(
@@ -279,13 +291,20 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                               ),
                               IconButton(
                                 icon: const Icon(Icons.send_rounded, color: Colors.white),
-                                onPressed: () {
-                                  if (commentController.text.isNotEmpty) {
-                                    setModalState(() {
-                                      photo['comments'].add(commentController.text);
-                                      commentController.clear();
-                                    });
-                                    setState(() {});
+                                onPressed: () async {
+                                  final text = commentController.text;
+                                  if (text.isNotEmpty) {
+                                    final success = await provider.addComment(photo['id'] as int, text);
+                                    if (success) {
+                                      setModalState(() {
+                                        photo['comments'] = provider.allPhotos
+                                            .firstWhere((p) => p['id'] == photo['id'])['comments'];
+                                        commentController.clear();
+                                      });
+                                      setState(() {});
+                                    } else {
+                                      AuthService.showToast('خطا در ثبت کامنت', isError: true);
+                                    }
                                   }
                                 },
                               ),
@@ -395,7 +414,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
             final photo = widget.photos[index];
             final bool isLocal = photo['isLocal'] ?? false;
             final DateTime date = photo['date'];
-            
+
             return Stack(
               fit: StackFit.expand,
               children: [
@@ -420,18 +439,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                     ),
                   ),
                 ),
-                Center(
-                  child: Hero(
-                    tag: photo['id'] ?? photo['image'],
-                    child: InteractiveViewer(
-                      minScale: 0.5,
-                      maxScale: 4.0,
-                      child: isLocal 
-                        ? Image.file(File(photo['image']), fit: BoxFit.contain)
-                        : Image.network(photo['image'], fit: BoxFit.contain),
-                    ),
-                  ),
-                ),
+
                 if (index == _currentIndex)
                   AnimatedPositioned(
                     duration: const Duration(milliseconds: 300),
