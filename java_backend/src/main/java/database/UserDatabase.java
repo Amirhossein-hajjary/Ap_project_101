@@ -161,6 +161,68 @@ public class UserDatabase {
         return true;
     }
 
+    public synchronized boolean deleteAlbum(int ownerId, int albumId) {
+        Wrapper data = load();
+        User owner = findUserInWrapper(data, ownerId);
+        if (owner == null) return false;
+
+        Album album = findAlbumInUser(owner, albumId);
+        if (album == null) return false;
+
+        for (int imageId : new ArrayList<>(album.getImageIds())) {
+            Image image = findImageInUser(owner, imageId);
+            if (image != null) image.removeAlbumId(albumId);
+        }
+
+        owner.getAlbums().remove(album);
+        save(data);
+        return true;
+    }
+
+    public synchronized boolean renameAlbum(int ownerId, int albumId, String newName) {
+        Wrapper data = load();
+        User owner = findUserInWrapper(data, ownerId);
+        if (owner == null) return false;
+
+        Album album = findAlbumInUser(owner, albumId);
+        if (album == null) return false;
+
+        album.setName(newName);
+        save(data);
+        return true;
+    }
+
+    public synchronized boolean deleteImage(int ownerId, int imageId) {
+        Wrapper data = load();
+        User owner = findUserInWrapper(data, ownerId);
+        if (owner == null) return false;
+
+        Image image = findImageInUser(owner, imageId);
+        if (image == null) return false;
+
+        for (int albumId : new ArrayList<>(image.getAlbumIds())) {
+            Album album = findAlbumInUser(owner, albumId);
+            if (album != null) album.removeImageId(imageId);
+        }
+
+        owner.getImages().remove(image);
+        save(data);
+        return true;
+    }
+
+    public synchronized boolean setImageLiked(int ownerId, int imageId, boolean liked) {
+        Wrapper data = load();
+        User owner = findUserInWrapper(data, ownerId);
+        if (owner == null) return false;
+
+        Image image = findImageInUser(owner, imageId);
+        if (image == null) return false;
+
+        image.setLiked(liked);
+        save(data);
+        return true;
+    }
+
     private User findUserInWrapper(Wrapper data, int userId) {
         for (User u : data.users) {
             if (u.getId() == userId) return u;

@@ -97,6 +97,18 @@ public class ClientHandler implements Runnable {
             if (route.equals("/album/removeImageFromAlbum/")) {
                 return albumController.removeImageFromAlbum(userId, request.getPayload());
             }
+            if (route.equals("/album/delete/")) {
+                return albumController.deleteAlbum(userId, request.getPayload());
+            }
+            if (route.equals("/album/rename/")) {
+                return albumController.renameAlbum(userId, request.getPayload());
+            }
+            if (route.equals("/image/delete/")) {
+                return albumController.deleteImage(userId, request.getPayload());
+            }
+            if (route.equals("/image/like/")) {
+                return albumController.setLiked(userId, request.getPayload());
+            }
             if (route.equals("/gallery/list/")) {
                 return galleryController.listAllImages(userId);
             }

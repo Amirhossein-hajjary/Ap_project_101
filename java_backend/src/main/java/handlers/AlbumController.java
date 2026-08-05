@@ -136,4 +136,46 @@ public class AlbumController {
         if (!success) return Response.error(404, "عکس یا آلبوم یافت نشد");
         return Response.ok("عکس از آلبوم حذف شد", null);
     }
+
+    public Response deleteAlbum(int userId, JsonObject payload) {
+        if (payload == null || !payload.has("albumId")) {
+            return Response.error(400, "فیلد albumId الزامی است");
+        }
+        int albumId = payload.get("albumId").getAsInt();
+        boolean success = userDatabase.deleteAlbum(userId, albumId);
+        if (!success) return Response.error(404, "آلبوم یافت نشد");
+        return Response.ok("آلبوم حذف شد", null);
+    }
+
+    public Response renameAlbum(int userId, JsonObject payload) {
+        if (payload == null || !payload.has("albumId") || !payload.has("newName")) {
+            return Response.error(400, "فیلدهای albumId و newName الزامی است");
+        }
+        int albumId = payload.get("albumId").getAsInt();
+        String newName = payload.get("newName").getAsString();
+        boolean success = userDatabase.renameAlbum(userId, albumId, newName);
+        if (!success) return Response.error(404, "آلبوم یافت نشد");
+        return Response.ok("نام آلبوم تغییر کرد", null);
+    }
+
+    public Response deleteImage(int userId, JsonObject payload) {
+        if (payload == null || !payload.has("imageId")) {
+            return Response.error(400, "فیلد imageId الزامی است");
+        }
+        int imageId = payload.get("imageId").getAsInt();
+        boolean success = userDatabase.deleteImage(userId, imageId);
+        if (!success) return Response.error(404, "عکس یافت نشد");
+        return Response.ok("عکس حذف شد", null);
+    }
+
+    public Response setLiked(int userId, JsonObject payload) {
+        if (payload == null || !payload.has("imageId") || !payload.has("liked")) {
+            return Response.error(400, "فیلدهای imageId و liked الزامی است");
+        }
+        int imageId = payload.get("imageId").getAsInt();
+        boolean liked = payload.get("liked").getAsBoolean();
+        boolean success = userDatabase.setImageLiked(userId, imageId, liked);
+        if (!success) return Response.error(404, "عکس یافت نشد");
+        return Response.ok("وضعیت پسندیدن تغییر کرد", null);
+    }
 }
