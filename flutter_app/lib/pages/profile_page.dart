@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../widgets/glass_container.dart';
 import '../widgets/pressable.dart';
 import '../services/auth_service.dart';
+import '../services/socket_service.dart';
 import 'login_page.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -27,6 +28,114 @@ class ProfilePage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _showChangePasswordDialog(BuildContext context) async {
+    final formKey = GlobalKey<FormState>();
+    final oldPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Change Password'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: oldPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Current Password'),
+                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: newPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'New Password'),
+                validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: confirmPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Confirm New Password'),
+                validator: (v) => v != newPasswordController.text ? 'Passwords do not match' : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              try {
+                final response = await SocketService().sendRequest(
+                  method: 'POST',
+                  route: '/user/changePassword/',
+                  username: Provider.of<AuthProvider>(context, listen: false).username,
+                  payload: {
+                    'oldPassword': oldPasswordController.text,
+                    'newPassword': newPasswordController.text,
+                  },
+                );
+                if (response['statusCode'] == 200) {
+                  if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  AuthService.showToast('Password changed successfully');
+                } else {
+                  AuthService.showToast(response['message'] ?? 'Failed to change password', isError: true);
+                }
+              } catch (e) {
+                AuthService.showToast('Connection error: $e', isError: true);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showDeleteAccountDialog(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text('This will permanently delete your account and all your photos and albums. This action cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    if (!context.mounted) return;
+
+    try {
+      final response = await SocketService().sendRequest(
+        method: 'DELETE',
+        route: '/user/deleteAccount/',
+        username: Provider.of<AuthProvider>(context, listen: false).username,
+        payload: {},
+      );
+      if (response['statusCode'] == 200) {
+        SocketService().disconnect();
+        await AuthService.setLoggedIn(false);
+        if (context.mounted) {
+          Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginPage()), (r) => false);
+        }
+      } else {
+        AuthService.showToast(response['message'] ?? 'Failed to delete account', isError: true);
+      }
+    } catch (e) {
+      AuthService.showToast('Connection error: $e', isError: true);
+    }
   }
 
   @override
@@ -69,17 +178,21 @@ class ProfilePage extends StatelessWidget {
                         child: CircleAvatar(
                           radius: 54,
                           backgroundColor: theme.primaryColor.withAlpha(20),
-                          backgroundImage: const NetworkImage('https://ui-avatars.com/api/?name=User&background=6366F1&color=fff&size=200'),
+                          backgroundImage: NetworkImage(
+                            'https://ui-avatars.com/api/?name=${Uri.encodeComponent(authProvider.username)}&background=6366F1&color=fff&size=200',
+                          ),
                         ),
                       ),
                       const SizedBox(height: AppTheme.spacingLg),
-                      Text('Premium Member', style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.w900, fontSize: 18)),
-                      Text('member@gallery.app', style: theme.textTheme.labelMedium),
+                      Text(
+                        authProvider.username.isEmpty ? 'User' : authProvider.username,
+                        style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.w900, fontSize: 18),
+                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: AppTheme.spacing3Xl),
-                
+
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl),
                   child: Row(
@@ -110,7 +223,7 @@ class ProfilePage extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: AppTheme.spacing3Xl),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl),
@@ -142,7 +255,24 @@ class ProfilePage extends StatelessWidget {
                         onChanged: (val) => authProvider.setBiometricEnabled(val),
                       ),
                     ),
-                    _buildOptionTile(context, Icons.lock_outline_rounded, 'Change Password'),
+                    _buildOptionTile(
+                      context,
+                      Icons.lock_outline_rounded,
+                      'Change Password',
+                      onTap: () => _showChangePasswordDialog(context),
+                    ),
+                  ]),
+                ),
+                const SizedBox(height: AppTheme.spacingXl),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl),
+                  child: _buildOptionGroup(theme, 'ACCOUNT', [
+                    _buildOptionTile(
+                      context,
+                      Icons.delete_forever_rounded,
+                      'Delete Account',
+                      onTap: () => _showDeleteAccountDialog(context),
+                    ),
                   ]),
                 ),
                 const SizedBox(height: AppTheme.spacing2Xl),
@@ -150,6 +280,7 @@ class ProfilePage extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl),
                   child: Pressable(
                     onTap: () async {
+                      SocketService().disconnect();
                       await AuthService.setLoggedIn(false);
                       if (context.mounted) {
                         Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginPage()), (r) => false);
