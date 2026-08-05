@@ -8,6 +8,8 @@ import '../themes/app_theme.dart';
 import 'register_page.dart';
 import 'main_scaffold.dart';
 import '../services/socket_service.dart';
+import '../providers/auth_provider.dart';
+import '../providers/gallery_provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -70,6 +72,12 @@ class _LoginPageState extends State<LoginPage> {
 
         if (statusCode == 200) {
           AuthService.showToast('Login Successful');
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+          await authProvider.setUsername(_usernameController.text);
+
+          final galleryProvider = Provider.of<GalleryProvider>(context, listen: false);
+          galleryProvider.setUsername(_usernameController.text);
+          await galleryProvider.loadAll();
           await AuthService.setLoggedIn(true);
           if (mounted) {
             Navigator.pushReplacement(

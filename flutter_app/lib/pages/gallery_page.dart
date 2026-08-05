@@ -10,6 +10,7 @@ import '../widgets/pressable.dart';
 import '../services/auth_service.dart';
 import 'photo_details_page.dart';
 import 'upload_page.dart';
+import '../widgets/photo_image.dart';
 
 class GalleryPage extends StatefulWidget {
   const GalleryPage({super.key});
@@ -359,15 +360,10 @@ class _GalleryPageState extends State<GalleryPage> {
         fit: StackFit.expand,
         children: [
           Hero(
-            tag: photo['id'] ?? photo['image'],
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                image: DecorationImage(
-                  image: photo['isLocal'] ? FileImage(File(photo['image'])) : NetworkImage(photo['image']) as ImageProvider,
-                  fit: BoxFit.cover,
-                ),
-              ),
+            tag: photo['id'],
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              child: PhotoImage(imageId: photo['id'] as int),
             ),
           ),
           if (isSelected) 

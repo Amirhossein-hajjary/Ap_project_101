@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../widgets/glass_container.dart';
 import '../services/auth_service.dart';
 import '../providers/gallery_provider.dart';
+import '../widgets/photo_image.dart';
 
 class PhotoDetailsPage extends StatefulWidget {
   final List<Map<String, dynamic>> photos;
@@ -56,17 +57,20 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
   }
 
   void _toggleFavorite() {
+    final photo = widget.photos[_currentIndex];
+    final provider = Provider.of<GalleryProvider>(context, listen: false);
+    final newState = !(photo['isFavorite'] ?? false);
+    provider.likePhoto(photo['id'] as int, newState);
     setState(() {
-      final photo = widget.photos[_currentIndex];
-      photo['isFavorite'] = !(photo['isFavorite'] ?? false);
+      photo['isFavorite'] = newState;
+      photo['liked'] = newState;
     });
-    final isFav = widget.photos[_currentIndex]['isFavorite'];
-    AuthService.showToast(isFav ? 'Added to Favorites' : 'Removed from Favorites');
+    AuthService.showToast(newState ? 'Added to Favorites' : 'Removed from Favorites');
   }
 
   void _sharePhoto() {
     final photo = widget.photos[_currentIndex];
-    final String content = 'Check out this photo: ${photo['name']}\nAlbums: ${(photo['albums'] as List).join(', ')}\nLink: ${photo['image']}';
+    final String content = 'Check out this photo: ${photo['name']}\nAlbums: ${(photo['albums'] as List).join(', ')}';
     Share.share(content);
   }
 
@@ -318,7 +322,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
             _detailRow('Albums', (photo['albums'] as List).join(', ')),
             _detailRow('Upload Date', '${date.day}/${date.month}/${date.year}'),
             _detailRow('Tags', photo['tags'] ?? 'No tags'),
-            _detailRow('Storage', photo['isLocal'] ? 'Local Device' : 'Cloud Server'),
+            _detailRow('Storage', 'Cloud Server'),
           ],
         ),
         actions: [
@@ -398,14 +402,22 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                 Positioned.fill(
                   child: Stack(
                     children: [
-                      isLocal 
-                        ? Image.file(File(photo['image']), fit: BoxFit.cover)
-                        : Image.network(photo['image'], fit: BoxFit.cover),
+                      PhotoImage(imageId: photo['id'] as int),
                       BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                         child: Container(color: Colors.black.withAlpha(100)),
                       ),
                     ],
+                  ),
+                ),
+                Center(
+                  child: Hero(
+                    tag: photo['id'],
+                    child: InteractiveViewer(
+                      minScale: 0.5,
+                      maxScale: 4.0,
+                      child: PhotoImage(imageId: photo['id'] as int, fit: BoxFit.contain),
+                    ),
                   ),
                 ),
                 Center(

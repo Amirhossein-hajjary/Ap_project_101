@@ -7,6 +7,7 @@ import '../widgets/glass_container.dart';
 import '../services/auth_service.dart';
 import '../themes/app_theme.dart';
 import 'photo_details_page.dart';
+import '../widgets/photo_image.dart';
 
 class AlbumDetailsPage extends StatefulWidget {
   final String albumName;
@@ -65,9 +66,7 @@ class _AlbumDetailsPageState extends State<AlbumDetailsPage> {
             TextButton(
               onPressed: targetAlbum == null ? null : () {
                 List<int> ids = _selectedIndices.map((i) => photos[i]['id'] as int).toList();
-                for (var id in ids) {
-                  provider.transferPhoto(id, widget.albumName, targetAlbum!);
-                }
+                provider.bulkTransfer(ids, widget.albumName, targetAlbum!);
                 setState(() {
                   _selectedIndices.clear();
                   _isSelectionMode = false;
@@ -276,14 +275,9 @@ class _AlbumDetailsPageState extends State<AlbumDetailsPage> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-              image: DecorationImage(
-                image: photo['isLocal'] ? FileImage(File(photo['image'])) : NetworkImage(photo['image']) as ImageProvider,
-                fit: BoxFit.cover,
-              ),
-            ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            child: PhotoImage(imageId: photo['id'] as int),
           ),
           if (isSelected) 
             Container(

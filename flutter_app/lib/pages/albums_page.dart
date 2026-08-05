@@ -7,6 +7,7 @@ import '../widgets/glass_container.dart';
 import '../services/auth_service.dart';
 import '../themes/app_theme.dart';
 import 'album_details_page.dart';
+import '../widgets/photo_image.dart';
 
 class AlbumsPage extends StatefulWidget {
   const AlbumsPage({super.key});
@@ -201,14 +202,11 @@ class _AlbumsPageState extends State<AlbumsPage> {
             children: [
               Positioned.fill(
                 child: hasPhotos
-                    ? (lastPhoto!['isLocal']
-                        ? Image.file(File(lastPhoto['image']), fit: BoxFit.cover)
-                        : Image.network(lastPhoto['image'], fit: BoxFit.cover))
+                    ? PhotoImage(imageId: lastPhoto!['id'] as int)
                     : Container(
-                        color: theme.primaryColor.withAlpha(10),
-                        child: Icon(title == 'Favorites' ? Icons.favorite_rounded : Icons.folder_open_rounded, 
-                                   color: theme.primaryColor.withAlpha(60), size: 40),
-                      ),
+                  color: theme.primaryColor.withAlpha(10),
+                  child: Icon(Icons.image_outlined, color: theme.primaryColor.withAlpha(60), size: 40),
+                ),
               ),
               Positioned.fill(
                 child: Container(

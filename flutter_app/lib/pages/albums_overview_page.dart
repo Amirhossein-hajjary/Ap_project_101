@@ -5,6 +5,7 @@ import '../providers/gallery_provider.dart';
 import '../widgets/glass_container.dart';
 import '../widgets/pressable.dart';
 import 'album_details_page.dart';
+import '../widgets/photo_image.dart';
 
 class AlbumsOverviewPage extends StatelessWidget {
   const AlbumsOverviewPage({super.key});
@@ -105,15 +106,11 @@ class AlbumsOverviewPage extends StatelessWidget {
                                   ),
                                   child: albumPhotos.isNotEmpty
                                       ? ClipRRect(
-                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                                          child: Image.file(
-                                            File(albumPhotos.first['image']),
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) => Icon(Icons.broken_image_rounded, size: 48, color: theme.primaryColor.withAlpha(100)),
-                                          ),
-                                        )
-                                      : Icon(albumName == 'Favorites' ? Icons.favorite_rounded : Icons.folder_open_rounded, 
-                                             size: 48, color: theme.primaryColor.withAlpha(100)),
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                                    child: PhotoImage(imageId: albumPhotos.first['id'] as int),
+                                  )
+                                      : Icon(albumName == 'Favorites' ? Icons.favorite_rounded : Icons.folder_open_rounded,
+                                      size: 48, color: theme.primaryColor.withAlpha(100)),
                                 ),
                               ),
                               Padding(

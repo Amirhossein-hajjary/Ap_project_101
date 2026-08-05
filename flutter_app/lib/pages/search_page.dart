@@ -5,6 +5,7 @@ import '../widgets/pressable.dart';
 import '../widgets/glass_container.dart';
 import '../themes/app_theme.dart';
 import 'photo_details_page.dart';
+import '../widgets/photo_image.dart';
 
 class SearchPage extends StatefulWidget {
   final List<Map<String, dynamic>> allPhotos;
@@ -142,11 +143,13 @@ class _SearchPageState extends State<SearchPage> {
                             ),
                             child: ListTile(
                               contentPadding: const EdgeInsets.all(AppTheme.spacingSm),
-                              leading: ClipRRect(
-                                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                                child: photo['isLocal'] == true 
-                                    ? Image.file(File(photo['image']), width: 60, height: 60, fit: BoxFit.cover)
-                                    : Image.network(photo['image'], width: 60, height: 60, fit: BoxFit.cover),
+                              leading: SizedBox(
+                                width: 60,
+                                height: 60,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                                  child: PhotoImage(imageId: photo['id'] as int),
+                                ),
                               ),
                               title: Text(photo['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
                               subtitle: Text(

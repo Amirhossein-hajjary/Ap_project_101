@@ -7,13 +7,30 @@ class AuthProvider with ChangeNotifier {
   bool _biometricEnabled = false;
   bool get biometricEnabled => _biometricEnabled;
 
+  String _username = '';
+  String get username => _username;
+
   AuthProvider() {
     _loadBiometricStatus();
+    _loadUsername();
   }
 
   Future<void> _loadBiometricStatus() async {
     final prefs = await SharedPreferences.getInstance();
     _biometricEnabled = prefs.getBool('biometricEnabled') ?? false;
+    notifyListeners();
+  }
+
+  Future<void> _loadUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    _username = prefs.getString('username') ?? '';
+    notifyListeners();
+  }
+
+  Future<void> setUsername(String username) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('username', username);
+    _username = username;
     notifyListeners();
   }
 
@@ -26,7 +43,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> loginWithBiometrics() async {
     if (!_biometricEnabled) return false;
-    
+
     bool authenticated = await LocalAuthService.authenticate();
     if (authenticated) {
       await AuthService.setLoggedIn(true);

@@ -6,6 +6,9 @@ import '../themes/app_theme.dart';
 import 'login_page.dart';
 import 'main_scaffold.dart';
 import '../services/socket_service.dart';
+import '../providers/auth_provider.dart';
+import '../providers/gallery_provider.dart';
+import 'package:provider/provider.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -58,6 +61,12 @@ class _RegisterPageState extends State<RegisterPage> {
 
         if (statusCode == 200) {
           AuthService.showToast('Account created successfully');
+          final authProvider = Provider.of<AuthProvider>(context, listen: false);
+          await authProvider.setUsername(_usernameController.text);
+
+          final galleryProvider = Provider.of<GalleryProvider>(context, listen: false);
+          galleryProvider.setUsername(_usernameController.text);
+          await galleryProvider.loadAll();
           await AuthService.setLoggedIn(true);
           if (mounted) {
             Navigator.pushReplacement(

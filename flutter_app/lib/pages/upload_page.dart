@@ -8,6 +8,7 @@ import '../widgets/custom_text_field.dart';
 import '../widgets/glass_container.dart';
 import '../widgets/pressable.dart';
 import '../themes/app_theme.dart';
+import 'dart:convert';
 
 class UploadPage extends StatefulWidget {
   final XFile? initialImage;
@@ -84,35 +85,27 @@ class _UploadPageState extends State<UploadPage> {
 
     if (_formKey.currentState!.validate()) {
       setState(() => _isUploading = true);
-      
-      // Simulate network upload
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (!mounted) return;
-      final provider = Provider.of<GalleryProvider>(context, listen: false);
-      
-      final newPhoto = {
-        'id': DateTime.now().millisecondsSinceEpoch,
-        'name': _titleController.text,
-        'image': _imageFile!.path,
-        'album': _selectedAlbums.isNotEmpty ? _selectedAlbums.first : '',
-        'albums': List<String>.from(_selectedAlbums),
-        'date': _selectedDate,
-        'isLocal': true,
-        'isFavorite': false,
-        'tags': _tagsController.text,
-        'caption': _captionController.text,
-        'captions': _captionController.text.isNotEmpty ? [_captionController.text] : [],
-        'objects': _objectsController.text,
-        'categories': _categoriesController.text,
-        'comments': [],
-        'allowComments': true,
-      };
 
       try {
-        provider.addPhoto(newPhoto);
-        AuthService.showToast('Image uploaded successfully');
-        Navigator.pop(context);
+        final bytes = await _imageFile!.readAsBytes();
+        final String base64Data = base64Encode(bytes);
+
+        final provider = Provider.of<GalleryProvider>(context, listen: false);
+
+        final success = await provider.addPhoto({
+          'name': _titleController.text,
+          'caption': _captionController.text,
+          'albums': List<String>.from(_selectedAlbums),
+          'tags': _tagsController.text,
+          'base64Data': base64Data,
+        });
+
+        if (success) {
+          AuthService.showToast('Image uploaded successfully');
+          if (mounted) Navigator.pop(context);
+        } else {
+          AuthService.showToast('Failed to upload image', isError: true);
+        }
       } catch (e) {
         AuthService.showToast('Failed to upload image', isError: true);
       } finally {
