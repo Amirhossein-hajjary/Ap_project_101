@@ -1,131 +1,108 @@
 import 'package:flutter/material.dart';
+import '../services/socket_service.dart';
 
 class GalleryProvider with ChangeNotifier {
-  final List<Map<String, dynamic>> _allPhotos = [];
-  final List<String> _userCreatedAlbums = [];
+  List<Map<String, dynamic>> _allPhotos = [];
+  List<Map<String, dynamic>> _albums = [];
+  bool _isLoading = false;
 
   List<Map<String, dynamic>> get allPhotos => _allPhotos;
-  List<String> get userAlbums => _userCreatedAlbums;
-  
-  // Dynamic Albums List
-  List<String> get displayAlbums {
-    List<String> albums = List.from(_userCreatedAlbums);
-    
-    // Check if any photo is liked to show 'Favorites'
-    final hasFavorites = _allPhotos.any((p) => p['isFavorite'] == true);
-    if (hasFavorites) {
-      albums.insert(0, 'Favorites');
-    }
-    
-    return albums;
-  }
+  List<Map<String, dynamic>> get albums => _albums;
+  bool get isLoading => _isLoading;
 
-  // Get photos for a specific album name
-  List<Map<String, dynamic>> getPhotosForAlbum(String albumName) {
-    if (albumName == 'Favorites') {
-      return _allPhotos.where((p) => p['isFavorite'] == true).toList();
-    }
-    return _allPhotos.where((p) => (p['albums'] as List).contains(albumName)).toList();
-  }
+  Future<void> loadGallery(String username) async {
+    _isLoading = true;
+    notifyListeners();
 
-  void addPhoto(Map<String, dynamic> photo) {
-    // If no album provided, it goes to an internal 'unnamed' storage 
-    // that isn't part of the displayAlbums list.
-    if (photo['albums'] == null || (photo['albums'] as List).isEmpty) {
-      photo['albums'] = <String>['__unnamed__'];
+    try {
+      final response = await SocketService().sendRequest(
+        method: 'GET',
+        route: '/gallery/list/',
+        username: username,
+        payload: {},
+      );
+
+      if (response['statusCode'] == 200) {
+        final List<dynamic> images = response['payload'] ?? [];
+        _allPhotos = images.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (e) {
+      debugPrint('خطا در دریافت گالری: $e');
     }
-    _allPhotos.insert(0, photo);
+
+    _isLoading = false;
     notifyListeners();
   }
 
-  void toggleFavorite(int id) {
-    final index = _allPhotos.indexWhere((p) => p['id'] == id);
-    if (index != -1) {
-      _allPhotos[index]['isFavorite'] = !(_allPhotos[index]['isFavorite'] ?? false);
-      notifyListeners();
-    }
-  }
+  Future<void> loadAlbums(String username) async {
+    try {
+      final response = await SocketService().sendRequest(
+        method: 'GET',
+        route: '/album/list/',
+        username: username,
+        payload: {},
+      );
 
-  void deletePhoto(int id) {
-    _allPhotos.removeWhere((p) => p['id'] == id);
-    notifyListeners();
-  }
-
-  void bulkDelete(List<int> ids) {
-    _allPhotos.removeWhere((p) => ids.contains(p['id']));
-    notifyListeners();
-  }
-
-  void updatePhotoAlbums(int id, List<String> albums) {
-    final index = _allPhotos.indexWhere((p) => p['id'] == id);
-    if (index != -1) {
-      _allPhotos[index]['albums'] = List<String>.from(albums);
-      notifyListeners();
-    }
-  }
-
-  void bulkMove(List<int> ids, String newAlbum) {
-    for (var id in ids) {
-      addPhotoToAlbum(id, newAlbum);
-    }
-    notifyListeners();
-  }
-
-  void addPhotoToAlbum(int id, String albumName) {
-    final index = _allPhotos.indexWhere((p) => p['id'] == id);
-    if (index != -1) {
-      List<String> albums = List<String>.from(_allPhotos[index]['albums'] ?? []);
-      if (!albums.contains(albumName)) {
-        // If it was only in unnamed, remove it
-        albums.remove('__unnamed__');
-        albums.add(albumName);
-        _allPhotos[index]['albums'] = albums;
+      if (response['statusCode'] == 200) {
+        final List<dynamic> albumsData = response['payload'] ?? [];
+        _albums = albumsData.map((e) => Map<String, dynamic>.from(e)).toList();
         notifyListeners();
       }
+    } catch (e) {
+      debugPrint('خطا در دریافت آلبوم‌ها: $e');
     }
   }
 
-  void removePhotoFromAlbum(int id, String albumName) {
-    final index = _allPhotos.indexWhere((p) => p['id'] == id);
-    if (index != -1) {
-      List<String> albums = List<String>.from(_allPhotos[index]['albums'] ?? []);
-      albums.remove(albumName);
-      // If now empty, move back to unnamed
-      if (albums.isEmpty) albums.add('__unnamed__');
-      _allPhotos[index]['albums'] = albums;
-      notifyListeners();
-    }
-  }
+  Future<bool> createAlbum(String username, String name) async {
+    try {
+      final response = await SocketService().sendRequest(
+        method: 'POST',
+        route: '/album/create/',
+        username: username,
+        payload: {'name': name},
+      );
 
-  void transferPhoto(int id, String fromAlbum, String toAlbum) {
-    final index = _allPhotos.indexWhere((p) => p['id'] == id);
-    if (index != -1) {
-      List<String> albums = List<String>.from(_allPhotos[index]['albums'] ?? []);
-      albums.remove(fromAlbum);
-      if (!albums.contains(toAlbum)) albums.add(toAlbum);
-      if (albums.isEmpty) albums.add('__unnamed__');
-      _allPhotos[index]['albums'] = albums;
-      notifyListeners();
-    }
-  }
-
-  void addAlbum(String name) {
-    if (name.toLowerCase() != 'favorites' && !_userCreatedAlbums.contains(name)) {
-      _userCreatedAlbums.add(name);
-      notifyListeners();
-    }
-  }
-
-  void deleteAlbum(String name) {
-    _userCreatedAlbums.remove(name);
-    for (var photo in _allPhotos) {
-      List<String> albums = List<String>.from(photo['albums'] ?? []);
-      if (albums.contains(name)) {
-        albums.remove(name);
-        if (albums.isEmpty) albums.add('__unnamed__');
-        photo['albums'] = albums;
+      if (response['statusCode'] == 200) {
+        await loadAlbums(username);
+        return true;
       }
+      return false;
+    } catch (e) {
+      debugPrint('خطا در ساخت آلبوم: $e');
+      return false;
     }
-    notifyListeners();
+  }
+
+  Future<bool> uploadPhoto({
+    required String username,
+    required String base64Data,
+    required String name,
+    required String caption,
+    List<int> albumIds = const [],
+    List<String> tags = const [],
+  }) async {
+    try {
+      final response = await SocketService().sendRequest(
+        method: 'POST',
+        route: '/album/upload/',
+        username: username,
+        payload: {
+          'base64Data': base64Data,
+          'name': name,
+          'caption': caption,
+          'albumIds': albumIds,
+          'tags': tags,
+        },
+      );
+
+      if (response['statusCode'] == 200) {
+        await loadGallery(username);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('خطا در آپلود عکس: $e');
+      return false;
+    }
   }
 }
