@@ -84,6 +84,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _currentIndex == index;
     final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
     
     return Pressable(
       onTap: () => setState(() => _currentIndex = index),
@@ -99,7 +100,7 @@ class _MainScaffoldState extends State<MainScaffold> {
           children: [
             Icon(
               icon,
-              color: isSelected ? theme.primaryColor : theme.hintColor.withAlpha(150),
+              color: isSelected ? theme.primaryColor : theme.hintColor.withAlpha(isDark ? 150 : 200),
               size: 26,
             ),
             if (isSelected)

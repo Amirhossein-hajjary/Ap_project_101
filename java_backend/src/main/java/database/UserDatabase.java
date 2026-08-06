@@ -6,6 +6,7 @@ import models.Album;
 import models.Comment;
 import models.Image;
 import models.User;
+import java.util.regex.Pattern;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -279,6 +280,12 @@ public class UserDatabase {
         return 0;
     }
 
+    private boolean isValidUsername(String username) {
+        final Pattern EMAIL = Pattern.compile("^[\\w.+-]+@[\\w-]+\\.[a-zA-Z]{2,}$");
+        final Pattern PHONE = Pattern.compile("^09\\d{9}$");
+        return username != null && (EMAIL.matcher(username).matches() || PHONE.matcher(username).matches());
+    }
+
     private boolean isValidPassword(String password, String userName) {
         if (password == null || password.length() < 8 || password.contains(userName)) return false;
         boolean hasUpper = password.chars().anyMatch(Character::isUpperCase);
@@ -295,6 +302,22 @@ public class UserDatabase {
         data.users.remove(user);
         save(data);
         return true;
+    }
+
+    public synchronized int changeUsername(int userId, String newUsername) {
+        Wrapper data = load();
+        User user = findUserInWrapper(data, userId);
+        if (user == null) return 1;
+
+        for (User u : data.users) {
+            if (u.getId() != userId && u.getUserName().equals(newUsername)) return 2;
+        }
+
+        if (!isValidUsername(newUsername)) return 3;
+
+        user.setUserName(newUsername);
+        save(data);
+        return 0;
     }
 
     private User findUserInWrapper(Wrapper data, int userId) {

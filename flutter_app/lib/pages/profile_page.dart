@@ -8,6 +8,7 @@ import '../widgets/pressable.dart';
 import '../services/auth_service.dart';
 import '../services/socket_service.dart';
 import 'login_page.dart';
+import '../providers/gallery_provider.dart';
 
 class ProfilePage extends StatelessWidget {
   final int totalPhotos;
@@ -86,6 +87,60 @@ class ProfilePage extends StatelessWidget {
                   AuthService.showToast('Password changed successfully');
                 } else {
                   AuthService.showToast(response['message'] ?? 'Failed to change password', isError: true);
+                }
+              } catch (e) {
+                AuthService.showToast('Connection error: $e', isError: true);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showChangeUsernameDialog(BuildContext context) async {
+    final formKey = GlobalKey<FormState>();
+    final newUsernameController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Change Username'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: newUsernameController,
+            decoration: const InputDecoration(
+              labelText: 'New Username',
+              hintText: 'Email or phone number',
+            ),
+            validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              try {
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                final response = await SocketService().sendRequest(
+                  method: 'POST',
+                  route: '/user/changeUsername/',
+                  username: authProvider.username,
+                  payload: {'newUsername': newUsernameController.text},
+                );
+                if (response['statusCode'] == 200) {
+                  await authProvider.setUsername(newUsernameController.text);
+                  if (context.mounted) {
+                    Provider.of<GalleryProvider>(context, listen: false)
+                        .setUsername(newUsernameController.text);
+                  }
+                  if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  AuthService.showToast('Username changed successfully');
+                } else {
+                  AuthService.showToast(response['message'] ?? 'Failed to change username', isError: true);
                 }
               } catch (e) {
                 AuthService.showToast('Connection error: $e', isError: true);
@@ -254,6 +309,12 @@ class ProfilePage extends StatelessWidget {
                         activeThumbColor: theme.primaryColor,
                         onChanged: (val) => authProvider.setBiometricEnabled(val),
                       ),
+                    ),
+                    _buildOptionTile(
+                      context,
+                      Icons.badge_outlined,
+                      'Change Username',
+                      onTap: () => _showChangeUsernameDialog(context),
                     ),
                     _buildOptionTile(
                       context,

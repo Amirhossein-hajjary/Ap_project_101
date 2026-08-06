@@ -124,16 +124,33 @@ class _UploadPageState extends State<UploadPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Select Source', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
+            Text(
+              'Select Source', 
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.lightText
+              )
+            ),
             const SizedBox(height: AppTheme.spacingLg),
             ListTile(
-              leading: const Icon(Icons.photo_library_rounded, color: Colors.white),
-              title: const Text('Open Gallery', style: TextStyle(color: Colors.white)),
+              leading: Icon(
+                Icons.photo_library_rounded, 
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.lightText
+              ),
+              title: Text(
+                'Open Gallery', 
+                style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.lightText)
+              ),
               onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); },
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt_rounded, color: Colors.white),
-              title: const Text('Take Photo', style: TextStyle(color: Colors.white)),
+              leading: Icon(
+                Icons.camera_alt_rounded, 
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.lightText
+              ),
+              title: Text(
+                'Take Photo', 
+                style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppTheme.lightText)
+              ),
               onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); },
             ),
             const SizedBox(height: AppTheme.spacingLg),
@@ -178,9 +195,12 @@ class _UploadPageState extends State<UploadPage> {
                       width: double.infinity,
                       height: 240,
                       decoration: BoxDecoration(
-                        color: theme.primaryColor.withAlpha(10),
+                        color: theme.primaryColor.withAlpha(theme.brightness == Brightness.dark ? 10 : 5),
                         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                        border: Border.all(color: theme.primaryColor.withAlpha(20), width: 2),
+                        border: Border.all(
+                          color: theme.primaryColor.withAlpha(theme.brightness == Brightness.dark ? 20 : 40), 
+                          width: 2
+                        ),
                       ),
                       child: _imageFile != null
                           ? ClipRRect(
@@ -190,9 +210,22 @@ class _UploadPageState extends State<UploadPage> {
                           : Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.add_a_photo_rounded, size: 48, color: theme.primaryColor.withAlpha(150)),
+                                Icon(
+                                  Icons.add_a_photo_rounded, 
+                                  size: 48, 
+                                  color: theme.brightness == Brightness.dark 
+                                    ? theme.primaryColor.withAlpha(150) 
+                                    : theme.primaryColor
+                                ),
                                 const SizedBox(height: AppTheme.spacingMd),
-                                Text('Select or Capture', style: theme.textTheme.titleLarge?.copyWith(color: theme.primaryColor.withAlpha(150))),
+                                Text(
+                                  'Select or Capture', 
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    color: theme.brightness == Brightness.dark 
+                                      ? theme.primaryColor.withAlpha(150) 
+                                      : theme.primaryColor
+                                  )
+                                ),
                               ],
                             ),
                     ),

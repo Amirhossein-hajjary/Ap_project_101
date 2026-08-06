@@ -46,8 +46,68 @@ class _AlbumsPageState extends State<AlbumsPage> {
     );
   }
 
-  void _deleteAlbum(String name) {
+  void _showAlbumOptions(String name) {
     if (name == 'Favorites') return;
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_rounded),
+              title: const Text('Rename Album'),
+              onTap: () {
+                Navigator.pop(context);
+                _showRenameDialog(name);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_rounded, color: Theme.of(context).colorScheme.error),
+              title: Text('Delete Album', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmDeleteAlbum(name);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRenameDialog(String oldName) {
+    final controller = TextEditingController(text: oldName);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Rename Album'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Enter new name'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              if (controller.text.isNotEmpty && controller.text != oldName) {
+                final success = await Provider.of<GalleryProvider>(context, listen: false)
+                    .renameAlbum(oldName, controller.text);
+                if (context.mounted) Navigator.pop(context);
+                AuthService.showToast(success ? 'Album renamed' : 'Failed to rename album', isError: !success);
+              } else {
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteAlbum(String name) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -183,7 +243,7 @@ class _AlbumsPageState extends State<AlbumsPage> {
       onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (_) => AlbumDetailsPage(albumName: title)));
       },
-      onLongPress: () => _deleteAlbum(title),
+      onLongPress: () => _showAlbumOptions(title),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppTheme.radiusLg),

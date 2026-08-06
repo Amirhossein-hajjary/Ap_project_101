@@ -155,6 +155,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                     label: 'Email or Mobile',
                                     hint: 'name@mail.com or 09...',
                                     icon: Icons.person_outline_rounded,
+                                    isDarkBackground: true,
                                     validator: (v) {
                                       if (v == null || v.isEmpty) return 'Required';
                                       if (!AuthService.isValidUsername(v)) return 'Invalid format';
@@ -168,6 +169,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                     hint: '••••••••',
                                     icon: Icons.lock_outline_rounded,
                                     obscureText: !_isPasswordVisible,
+                                    isDarkBackground: true,
                                     suffixIcon: IconButton(
                                       icon: Icon(_isPasswordVisible ? Icons.visibility_rounded : Icons.visibility_off_rounded, size: 20, color: Colors.white70),
                                       onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
@@ -181,6 +183,7 @@ class _RegisterPageState extends State<RegisterPage> {
                                     hint: '••••••••',
                                     icon: Icons.shield_outlined,
                                     obscureText: !_isConfirmVisible,
+                                    isDarkBackground: true,
                                     suffixIcon: IconButton(
                                       icon: Icon(_isConfirmVisible ? Icons.visibility_rounded : Icons.visibility_off_rounded, size: 20, color: Colors.white70),
                                       onPressed: () => setState(() => _isConfirmVisible = !_isConfirmVisible),

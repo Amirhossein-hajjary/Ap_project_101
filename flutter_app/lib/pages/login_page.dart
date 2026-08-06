@@ -165,6 +165,7 @@ class _LoginPageState extends State<LoginPage> {
                                     label: 'Username',
                                     hint: 'Email or Phone',
                                     icon: Icons.person_outline_rounded,
+                                    isDarkBackground: true,
                                     validator: (v) {
                                       if (v == null || v.isEmpty) return 'Required';
                                       if (!AuthService.isValidUsername(v)) return 'Invalid format';
@@ -178,6 +179,7 @@ class _LoginPageState extends State<LoginPage> {
                                     hint: '••••••••',
                                     icon: Icons.lock_outline_rounded,
                                     obscureText: !_isPasswordVisible,
+                                    isDarkBackground: true,
                                     suffixIcon: IconButton(
                                       icon: Icon(_isPasswordVisible ? Icons.visibility_rounded : Icons.visibility_off_rounded, size: 20, color: Colors.white70),
                                       onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),

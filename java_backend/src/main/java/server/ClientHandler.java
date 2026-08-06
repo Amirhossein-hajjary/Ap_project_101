@@ -79,6 +79,10 @@ public class ClientHandler implements Runnable {
             }
             int userId = user.getId();
 
+            if (route.equals("/user/changeUsername/")) {
+                return userController.changeUsername(userId, request.getPayload());
+            }
+
             if (route.equals("/user/changePassword/")) {
                 return userController.changePassword(userId, request.getPayload());
             }

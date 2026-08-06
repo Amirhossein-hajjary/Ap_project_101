@@ -50,4 +50,11 @@ class AuthProvider with ChangeNotifier {
     }
     return authenticated;
   }
+
+  Future<void> reloadUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    _username = prefs.getString('username') ?? '';
+    notifyListeners();
+  }
+
 }

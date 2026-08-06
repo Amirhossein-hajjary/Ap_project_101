@@ -59,6 +59,22 @@ public class UserController {
         return Response.ok("Welcome", user);
     }
 
+    public Response changeUsername(int userId, JsonObject payload) {
+        if (payload == null || !payload.has("newUsername")) {
+            return Response.error(400, "فیلد newUsername الزامی است");
+        }
+        String newUsername = payload.get("newUsername").getAsString();
+        int result = userDatabase.changeUsername(userId, newUsername);
+
+        switch (result) {
+            case 0: return Response.ok("نام کاربری تغییر کرد", null);
+            case 1: return Response.error(404, "کاربر یافت نشد");
+            case 2: return Response.error(401, "این نام کاربری قبلاً استفاده شده است");
+            case 3: return Response.error(400, "فرمت نام کاربری نامعتبر است");
+            default: return Response.error(500, "خطای ناشناخته");
+        }
+    }
+
     public Response changePassword(int userId, JsonObject payload) {
         if (payload == null || !payload.has("oldPassword") || !payload.has("newPassword")) {
             return Response.error(400, "فیلدهای oldPassword و newPassword الزامی است");

@@ -146,6 +146,28 @@ class GalleryProvider with ChangeNotifier {
     return false;
   }
 
+  Future<bool> renameAlbum(String oldName, String newName) async {
+    final albumId = _albumIdByName(oldName);
+    if (albumId == null) return false;
+
+    try {
+      final response = await SocketService().sendRequest(
+        method: 'POST',
+        route: '/album/rename/',
+        username: _username,
+        payload: {'albumId': albumId, 'newName': newName},
+      );
+      if (response['statusCode'] == 200) {
+        await loadAlbums();
+        await loadGallery();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('خطا در تغییر نام آلبوم: $e');
+    }
+    return false;
+  }
+
   Future<bool> deleteAlbum(String name) async {
     final albumId = _albumIdByName(name);
     if (albumId == null) return false;
