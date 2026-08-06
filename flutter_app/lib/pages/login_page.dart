@@ -109,14 +109,12 @@ class _LoginPageState extends State<LoginPage> {
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Background Image
           Positioned.fill(
             child: Image.asset(
               'assets/images/logback.jpg',
               fit: BoxFit.cover,
             ),
           ),
-          // Dark Gradient Overlay for Contrast
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(

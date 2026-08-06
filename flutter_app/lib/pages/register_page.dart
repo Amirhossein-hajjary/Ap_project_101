@@ -94,14 +94,12 @@ class _RegisterPageState extends State<RegisterPage> {
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Background Image
           Positioned.fill(
             child: Image.asset(
               'assets/images/regback.jpg',
               fit: BoxFit.cover,
             ),
           ),
-          // Dark Gradient Overlay for Contrast
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(

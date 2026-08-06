@@ -107,7 +107,6 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                             if (val == true) {
                               provider.addPhotoToAlbum(photo['id'], albumName);
                             } else {
-                              // Prevent removing from all albums
                               if ((photo['albums'] as List).length > 1) {
                                 provider.removePhotoFromAlbum(photo['id'], albumName);
                               } else {
@@ -115,7 +114,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                               }
                             }
                           });
-                          setState(() {}); // Refresh main page UI
+                          setState(() {});
                         },
                       );
                     },
@@ -212,7 +211,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                                   setModalState(() => photo['allowComments'] = val);
                                   setState(() {});
                                 } else {
-                                  AuthService.showToast('خطا در تغییر وضعیت کامنت‌گذاری', isError: true);
+                                  AuthService.showToast('Error changing commentable status', isError: true);
                                 }
                               },
                               activeTrackColor: Theme.of(context).primaryColor.withAlpha(150),
@@ -303,7 +302,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                                       });
                                       setState(() {});
                                     } else {
-                                      AuthService.showToast('خطا در ثبت کامنت', isError: true);
+                                      AuthService.showToast('Error submitting comment', isError: true);
                                     }
                                   }
                                 },
@@ -327,22 +326,33 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
   void _showTechnicalDetails() {
     final photo = widget.photos[_currentIndex];
     final DateTime date = photo['date'];
+    
+    String tagsString = 'No tags';
+    if (photo['tags'] is List) {
+      tagsString = (photo['tags'] as List).join(', ');
+    } else if (photo['tags'] is String && photo['tags'].toString().isNotEmpty) {
+      tagsString = photo['tags'];
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Technical Info'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _detailRow('Title', photo['name']),
-            _detailRow('Albums', (photo['albums'] as List).join(', ')),
-            _detailRow('Upload Date', '${date.day}/${date.month}/${date.year}'),
-            _detailRow('Tags', photo['tags'] ?? 'No tags'),
-            _detailRow('Storage', 'Cloud Server'),
-          ],
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _detailRow('Title', photo['name'] ?? 'Untitled'),
+              _detailRow('Albums', (photo['albums'] as List).join(', ')),
+              _detailRow('Upload Date', '${date.day}/${date.month}/${date.year}'),
+              _detailRow('Tags', tagsString),
+              _detailRow('Storage', 'Cloud Server'),
+            ],
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
@@ -356,7 +366,7 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: RichText(
         text: TextSpan(
-          style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+          style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, height: 1.5),
           children: [
             TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
             TextSpan(text: value),
@@ -412,7 +422,6 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
           onPageChanged: (index) => setState(() => _currentIndex = index),
           itemBuilder: (context, index) {
             final photo = widget.photos[index];
-            final bool isLocal = photo['isLocal'] ?? false;
             final DateTime date = photo['date'];
 
             return Stack(
@@ -453,37 +462,53 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
                       child: GlassContainer(
                         blur: 20,
                         opacity: 0.2,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(photo['name'] ?? 'Untitled', style: _outlinedTextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                            Text(photo['name'] ?? 'Untitled', 
+                              style: _outlinedTextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                const Icon(Icons.calendar_today, color: Colors.white, size: 16, shadows: [Shadow(color: Colors.black, blurRadius: 4)]),
-                                const SizedBox(width: 8),
-                                Text('${date.day}/${date.month}/${date.year}', style: _outlinedTextStyle(fontSize: 14)),
+                                const Icon(Icons.calendar_today, color: Colors.white, size: 14, shadows: [Shadow(color: Colors.black, blurRadius: 4)]),
+                                const SizedBox(width: 4),
+                                Text('${date.day}/${date.month}/${date.year}', style: _outlinedTextStyle(fontSize: 12)),
                                 const Spacer(),
-                                const Icon(Icons.folder_open, color: Colors.white, size: 16, shadows: [Shadow(color: Colors.black, blurRadius: 4)]),
-                                const SizedBox(width: 8),
-                                Text((photo['albums'] as List).join(', '), style: _outlinedTextStyle(fontSize: 14)),
+                                const Icon(Icons.folder_open, color: Colors.white, size: 14, shadows: [Shadow(color: Colors.black, blurRadius: 4)]),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    (photo['albums'] as List).join(', '), 
+                                    style: _outlinedTextStyle(fontSize: 12),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.end,
+                                  ),
+                                ),
                               ],
                             ),
-                            const SizedBox(height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                _buildActionButton(Icons.share, 'Share', onTap: _sharePhoto),
-                                _buildActionButton(
-                                  (photo['isFavorite'] ?? false) ? Icons.favorite : Icons.favorite_border,
-                                  'Favorite',
-                                  color: (photo['isFavorite'] ?? false) ? Colors.redAccent : Colors.white,
-                                  onTap: _toggleFavorite,
-                                ),
-                                _buildActionButton(Icons.forum_outlined, 'Social', onTap: _showSocialAndDetails),
-                                _buildActionButton(Icons.info_outline, 'Technical', onTap: _showTechnicalDetails),
-                              ],
+                            const SizedBox(height: 16),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _buildActionButton(Icons.share, 'Share', onTap: _sharePhoto),
+                                  _buildActionButton(
+                                    (photo['isFavorite'] ?? false) ? Icons.favorite : Icons.favorite_border,
+                                    'Favorite',
+                                    color: (photo['isFavorite'] ?? false) ? Colors.redAccent : Colors.white,
+                                    onTap: _toggleFavorite,
+                                  ),
+                                  _buildActionButton(Icons.forum_outlined, 'Social', onTap: _showSocialAndDetails),
+                                  _buildActionButton(Icons.info_outline, 'Technical', onTap: _showTechnicalDetails),
+                                ],
+                              ),
                             )
                           ],
                         ),
@@ -503,12 +528,13 @@ class _PhotoDetailsPageState extends State<PhotoDetailsPage> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, shadows: const [Shadow(color: Colors.black, blurRadius: 8)]),
+            Icon(icon, color: color, size: 22, shadows: const [Shadow(color: Colors.black, blurRadius: 8)]),
             const SizedBox(height: 4),
-            Text(label, style: _outlinedTextStyle(fontSize: 12, color: color)),
+            Text(label, style: _outlinedTextStyle(fontSize: 11, color: color)),
           ],
         ),
       ),

@@ -38,13 +38,12 @@ class AuthProvider with ChangeNotifier {
     if (value) {
       final available = await LocalAuthService.isBiometricAvailable();
       if (!available) {
-        AuthService.showToast('این دستگاه از احراز هویت بیومتریک پشتیبانی نمی‌کند', isError: true);
+        AuthService.showToast('This device does not support biometric authentication', isError: true);
         return false;
       }
-      // یک‌بار هویت کاربر تایید می‌شود تا مطمئن شویم بیومتریک واقعاً کار می‌کند
       final confirmed = await LocalAuthService.authenticate();
       if (!confirmed) {
-        AuthService.showToast('تایید هویت ناموفق بود', isError: true);
+        AuthService.showToast('Authentication failed', isError: true);
         return false;
       }
     }
@@ -56,7 +55,6 @@ class AuthProvider with ChangeNotifier {
     return true;
   }
 
-  /// با اثر انگشت، همان کاربری که آخرین‌بار لاگین کرده بود دوباره تایید می‌شود
   Future<bool> loginWithBiometrics() async {
     if (!_biometricEnabled) return false;
     if (_username.isEmpty) return false;

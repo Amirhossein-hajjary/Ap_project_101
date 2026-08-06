@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Brand Color - Unified Identity
-  static const Color brandPrimary = Color(0xFF6366F1); // Modern Indigo
+  static const Color brandPrimary = Color(0xFF6366F1);
   
-  // Spacing Scale
   static const double spacingXs = 4.0;
   static const double spacingSm = 8.0;
   static const double spacingMd = 12.0;
@@ -14,20 +12,17 @@ class AppTheme {
   static const double spacing2Xl = 32.0;
   static const double spacing3Xl = 48.0;
 
-  // Radius Scale
   static const double radiusSm = 12.0;
   static const double radiusMd = 16.0;
   static const double radiusLg = 24.0;
   static const double radiusXl = 32.0;
   static const double radiusFull = 500.0;
 
-  // Light Mode Colors
   static const Color lightBg = Color(0xFFF8FAFC);
   static const Color lightSurface = Colors.white;
   static const Color lightText = Color(0xFF0F172A);
   static const Color lightHint = Color(0xFF64748B);
 
-  // Dark Mode Colors
   static const Color darkBg = Color(0xFF020617);
   static const Color darkSurface = Color(0xFF0F172A);
   static const Color darkText = Color(0xFFF1F5F9);

@@ -6,7 +6,6 @@ class AuthService {
   static const String _isLoggedInKey = 'isLoggedIn';
   static const String _usernameKey = 'username';
 
-  // Cache prefs instance to avoid repeated async calls
   static SharedPreferences? _prefs;
 
   static Future<SharedPreferences> get _instance async {
@@ -52,7 +51,6 @@ class AuthService {
     return emailRegex.hasMatch(username) || phoneRegex.hasMatch(username);
   }
 
-  /// Returns null if valid, or an error message string if invalid.
   static String? validatePassword(String password, String username) {
     if (password.length < 8) {
       return 'Password must be at least 8 characters';

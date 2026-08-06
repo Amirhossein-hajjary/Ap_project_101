@@ -42,7 +42,6 @@ class AlbumsOverviewPage extends StatelessWidget {
     final galleryProvider = Provider.of<GalleryProvider>(context);
     final theme = Theme.of(context);
     
-    // Using displayAlbums which handles the logic for 'Favorites' and hiding unassigned
     final albums = galleryProvider.displayAlbums;
 
     return Scaffold(

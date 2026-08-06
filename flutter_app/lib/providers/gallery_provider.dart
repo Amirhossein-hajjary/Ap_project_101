@@ -81,7 +81,7 @@ class GalleryProvider with ChangeNotifier {
         }).toList();
       }
     } catch (e) {
-      debugPrint('خطا در دریافت گالری: $e');
+      debugPrint('Error loading gallery: $e');
     }
     notifyListeners();
   }
@@ -100,7 +100,7 @@ class GalleryProvider with ChangeNotifier {
         _rawAlbums = albumsData.map((e) => Map<String, dynamic>.from(e)).toList();
       }
     } catch (e) {
-      debugPrint('خطا در دریافت آلبوم‌ها: $e');
+      debugPrint('Error loading albums: $e');
     }
     notifyListeners();
   }
@@ -123,7 +123,7 @@ class GalleryProvider with ChangeNotifier {
         return bytes;
       }
     } catch (e) {
-      debugPrint('خطا در دریافت عکس: $e');
+      debugPrint('Error loading image: $e');
     }
     return null;
   }
@@ -141,7 +141,7 @@ class GalleryProvider with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      debugPrint('خطا در ساخت آلبوم: $e');
+      debugPrint('Error creating album: $e');
     }
     return false;
   }
@@ -163,7 +163,7 @@ class GalleryProvider with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      debugPrint('خطا در تغییر نام آلبوم: $e');
+      debugPrint('Error renaming album: $e');
     }
     return false;
   }
@@ -185,12 +185,11 @@ class GalleryProvider with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      debugPrint('خطا در حذف آلبوم: $e');
+      debugPrint('Error deleting album: $e');
     }
     return false;
   }
 
-  /// آپلود عکس با یک Map کامل (سازگار با upload_page.dart)
   Future<bool> addPhoto(Map<String, dynamic> photoData) async {
     final String base64Data = photoData['base64Data'] ?? '';
     if (base64Data.isEmpty) return false;
@@ -224,7 +223,7 @@ class GalleryProvider with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      debugPrint('خطا در آپلود عکس: $e');
+      debugPrint('Error uploading photo: $e');
     }
     return false;
   }
@@ -243,7 +242,7 @@ class GalleryProvider with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      debugPrint('خطا در حذف عکس: $e');
+      debugPrint('Error deleting photo: $e');
     }
     return false;
   }
@@ -272,7 +271,7 @@ class GalleryProvider with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      debugPrint('خطا در پسندیدن عکس: $e');
+      debugPrint('Error liking photo: $e');
     }
     return false;
   }
@@ -292,7 +291,7 @@ class GalleryProvider with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      debugPrint('خطا در افزودن به آلبوم: $e');
+      debugPrint('Error adding to album: $e');
     }
     return false;
   }
@@ -312,7 +311,7 @@ class GalleryProvider with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      debugPrint('خطا در حذف از آلبوم: $e');
+      debugPrint('Error removing from album: $e');
     }
     return false;
   }
@@ -365,7 +364,7 @@ class GalleryProvider with ChangeNotifier {
         username: _username,
         payload: {'imageId': imageId, 'title': title, 'context': context},
       );
-      debugPrint('پاسخ سرور برای کامنت: $response');
+      debugPrint('Server response for comment: $response');
       if (response['statusCode'] == 200) {
         final List<dynamic> comments = response['payload'] ?? [];
         final index = _allPhotos.indexWhere((p) => p['id'] == imageId);
@@ -378,7 +377,7 @@ class GalleryProvider with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      debugPrint('خطا در ثبت کامنت: $e');
+      debugPrint('Error submitting comment: $e');
     }
     return false;
   }
@@ -400,7 +399,7 @@ class GalleryProvider with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      debugPrint('خطا در تغییر وضعیت کامنت‌گذاری: $e');
+      debugPrint('Error changing commentable status: $e');
     }
     return false;
   }

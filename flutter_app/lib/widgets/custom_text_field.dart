@@ -11,7 +11,7 @@ class CustomTextField extends StatelessWidget {
   final String? Function(String?)? validator;
   final Function(String)? onChanged;
   final int maxLines;
-  final bool isDarkBackground; // برای مواردی که فیلد روی تصویر یا پس‌زمینه تیره است (مثل لاگین)
+  final bool isDarkBackground;
 
   const CustomTextField({
     super.key,
@@ -32,7 +32,6 @@ class CustomTextField extends StatelessWidget {
     final theme = Theme.of(context);
     final isDarkTheme = theme.brightness == Brightness.dark;
     
-    // انتخاب رنگ‌ها بر اساس پس‌زمینه (اگر دستی ست شده باشد) یا تم برنامه
     final Color textColor = (isDarkBackground || isDarkTheme) ? Colors.white : Colors.black87;
     final Color labelColor = (isDarkBackground || isDarkTheme) ? Colors.white70 : theme.hintColor;
     final Color hintColor = (isDarkBackground || isDarkTheme) ? Colors.white.withAlpha(120) : theme.hintColor.withAlpha(150);
