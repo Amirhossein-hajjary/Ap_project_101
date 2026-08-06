@@ -34,19 +34,39 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setBiometricEnabled(bool value) async {
+  Future<bool> setBiometricEnabled(bool value) async {
+    if (value) {
+      final available = await LocalAuthService.isBiometricAvailable();
+      if (!available) {
+        AuthService.showToast('این دستگاه از احراز هویت بیومتریک پشتیبانی نمی‌کند', isError: true);
+        return false;
+      }
+      // یک‌بار هویت کاربر تایید می‌شود تا مطمئن شویم بیومتریک واقعاً کار می‌کند
+      final confirmed = await LocalAuthService.authenticate();
+      if (!confirmed) {
+        AuthService.showToast('تایید هویت ناموفق بود', isError: true);
+        return false;
+      }
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('biometricEnabled', value);
     _biometricEnabled = value;
     notifyListeners();
+    return true;
   }
 
+  /// با اثر انگشت، همان کاربری که آخرین‌بار لاگین کرده بود دوباره تایید می‌شود
   Future<bool> loginWithBiometrics() async {
     if (!_biometricEnabled) return false;
+    if (_username.isEmpty) return false;
+
+    final available = await LocalAuthService.isBiometricAvailable();
+    if (!available) return false;
 
     bool authenticated = await LocalAuthService.authenticate();
     if (authenticated) {
-      await AuthService.setLoggedIn(true);
+      await AuthService.setLoggedIn(true, username: _username);
     }
     return authenticated;
   }
@@ -56,5 +76,4 @@ class AuthProvider with ChangeNotifier {
     _username = prefs.getString('username') ?? '';
     notifyListeners();
   }
-
 }

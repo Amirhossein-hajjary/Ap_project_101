@@ -38,13 +38,18 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _checkBiometrics() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.biometricEnabled) {
+    if (authProvider.biometricEnabled && authProvider.username.isNotEmpty) {
       bool success = await authProvider.loginWithBiometrics();
       if (success && mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScaffold()),
-        );
+        final galleryProvider = Provider.of<GalleryProvider>(context, listen: false);
+        galleryProvider.setUsername(authProvider.username);
+        await galleryProvider.loadAll();
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainScaffold()),
+          );
+        }
       }
     }
   }
